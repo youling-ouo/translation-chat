@@ -26,7 +26,7 @@ initializeApp({
     credential: cert(serviceAccount)
 });
 
-const db = getFirestore();
+const db = getFirestore(undefined, 'default');
 const dictDocRef = db.collection('dictionary').doc('main');
 // ------------------------
 
@@ -47,6 +47,7 @@ app.get('/dict.json', async (req, res) => {
     try {
         const doc = await dictDocRef.get();
         if (doc.exists) {
+            console.log("資料庫讀取結果:", doc.data());
             res.json(doc.data());
         } else {
             res.json({}); // 若資料庫內無資料則回傳空物件

@@ -103,6 +103,35 @@ app.post('/api/report', async (req, res) => {
     }
 });
 
+// ==========================================
+// 新增：處理前端的意見回饋
+// ==========================================
+app.post('/api/feedback', async (req, res) => {
+    const { content } = req.body;
+    
+    if (!content) {
+        return res.status(400).json({ success: false, error: '內容不可為空' });
+    }
+
+    try {
+        const channel = await discordClient.channels.fetch(process.env.DISCORD_CHANNEL_ID);
+        
+        // 建立意見回饋專用的訊息卡片
+        const embed = new EmbedBuilder()
+            .setTitle("💡 收到新的意見回饋")
+            .setColor(0xf1c40f) // 黃色以利區分
+            .setDescription(`\`\`\`text\n${content}\n\`\`\``)
+            .setTimestamp();
+
+        // 意見回饋不需要按鈕，直接送出即可
+        await channel.send({ embeds: [embed] });
+        res.json({ success: true, message: '回饋發送成功' });
+    } catch (err) {
+        console.error('發送意見回饋至 Discord 失敗:', err);
+        res.status(500).json({ success: false });
+    }
+});
+
 // --- 監聽 Discord 按紐動作 ---
 discordClient.on('interactionCreate', async interaction => {
     if (!interaction.isButton()) return;

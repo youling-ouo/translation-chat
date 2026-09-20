@@ -376,12 +376,9 @@
         
         // 確保從後端獲取最新的字典檔
         fetch('/dict.json')
-        .then(res => res.json())
-        .then(data => { 
-            dictionary = data; 
-            console.log("前端字典載入:", dictionary);
-        })
-        .catch(err => console.error('無法載入字典檔', err));
+            .then(res => res.json())
+            .then(data => { dictionary = data; })
+            .catch(err => console.error('無法載入字典檔', err));
 
         function translateText(text) {
             if (!text || Object.keys(dictionary).length === 0) return text;

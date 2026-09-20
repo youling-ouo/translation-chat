@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>兩岸用語翻譯與匿名聊天系統</title>
+    <title data-translate>兩岸用語翻譯與匿名聊天系統</title>
     <style>
         :root {
             --bg-color: #36393f;
@@ -21,7 +21,26 @@
             margin: 0;
             display: flex;
             height: 100vh;
+            overflow: hidden;
         }
+
+        /* 頂部語系切換列 */
+        .top-bar-container {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            z-index: 100;
+        }
+        .lang-btn {
+            background: #202225;
+            color: white;
+            border: 1px solid #40444b;
+            padding: 8px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lang-btn:hover { background: #40444b; }
 
         /* 側邊欄設計 */
         .sidebar {
@@ -32,14 +51,7 @@
             flex-direction: column;
             gap: 10px;
         }
-
-        .sidebar h2 {
-            font-size: 18px;
-            margin-bottom: 20px;
-            color: #fff;
-            text-align: center;
-        }
-
+        .sidebar h2 { font-size: 18px; margin-bottom: 20px; color: #fff; text-align: center; }
         .tab-btn {
             background-color: transparent;
             color: var(--text-color);
@@ -51,34 +63,22 @@
             text-align: left;
             transition: 0.2s;
         }
-
-        .tab-btn:hover {
-            background-color: #393c43;
-        }
-
-        .tab-btn.active {
-            background-color: var(--primary);
-            color: #fff;
-        }
+        .tab-btn:hover { background-color: #393c43; }
+        .tab-btn.active { background-color: var(--primary); color: #fff; }
 
         /* 主內容區 */
         .main-content {
             flex: 1;
-            padding: 30px;
+            padding: 30px 40px;
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow-y: auto;
         }
+        .section { display: none; flex-direction: column; height: 100%; }
+        .section.active { display: flex; }
 
-        .section {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .section.active {
-            display: flex;
-        }
+        h2, h3 { color: #fff; margin-top: 0; }
 
         /* 輸入與輸出區域 */
         textarea {
@@ -92,18 +92,7 @@
             font-size: 16px;
             box-sizing: border-box;
         }
-
-        textarea:focus {
-            outline: 2px solid var(--primary);
-        }
-
-        .translator-area {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            height: 100%;
-        }
-
+        textarea:focus { outline: 2px solid var(--primary); }
         .output-box {
             flex: 1;
             background-color: var(--panel-bg);
@@ -112,25 +101,29 @@
             overflow-y: auto;
             white-space: pre-wrap;
             line-height: 1.6;
+            margin-bottom: 20px;
         }
+        .hint { font-size: 12px; color: #8e9297; margin-top: 5px; }
 
         /* 聊天室專用 */
-        #chat-history {
+        #chatMessages {
             flex: 1;
             background-color: var(--panel-bg);
             border-radius: var(--border-radius);
             padding: 20px;
             overflow-y: auto;
             margin-bottom: 20px;
-        }
-
-        /* 回報功能 */
-        .report-row {
             display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
+            flex-direction: column;
         }
+        .message { padding: 10px 15px; border-radius: 10px; max-width: 70%; line-height: 1.4; margin-bottom: 10px; word-wrap: break-word; }
+        .msg-sys { text-align: center; color: #8e9297; font-size: 13px; margin: 0 auto 10px auto; }
+        .msg-self { background-color: var(--primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-other { background-color: #40444b; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
+        #room-link-container { display: none; margin-bottom: 15px; padding: 10px; background: #2f3136; border-radius: var(--border-radius); text-align: center; border: 1px dashed #5865F2;}
 
+        /* 回報功能與通用按鈕 */
+        .report-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
         .report-row input {
             flex: 1;
             padding: 12px;
@@ -140,205 +133,478 @@
             border-radius: var(--border-radius);
             font-size: 16px;
         }
-
+        select {
+            padding: 12px;
+            background-color: #40444b;
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
         .action-btn {
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 10px 20px;
             border-radius: var(--border-radius);
             cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
+            font-size: 15px;
             transition: 0.2s;
         }
+        .action-btn:hover { background-color: var(--primary-hover); }
+        .btn-add { background-color: #3ba55c; }
+        .btn-add:hover { background-color: #2d7d46; }
+        .btn-delete {
+            background-color: #ed4245;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .btn-delete:hover { background-color: #c9383b; }
 
-        .action-btn:hover {
-            background-color: var(--primary-hover);
+        /* 網站介紹專用 */
+        .intro-box {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            line-height: 1.8;
+            font-size: 16px;
         }
-
-        .btn-add {
-            background-color: #3ba55c;
-            width: fit-content;
-        }
-        .btn-add:hover {
-            background-color: #2d7d46;
-        }
-        
-        .hint {
-            font-size: 12px;
-            color: #8e9297;
-            margin-top: 5px;
+        .intro-box ul { margin-top: 10px; padding-left: 20px; }
+        .intro-box li { margin-bottom: 10px; }
+        .warning-box {
+            background-color: rgba(234, 153, 51, 0.1);
+            border-left: 4px solid #ea9933;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
         }
     </style>
+
+    <!-- 引入 Socket.io 與 OpenCC -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
 </head>
 <body>
 
+    <!-- 頂部切換語言按鈕 -->
+    <div class="top-bar-container">
+        <button class="lang-btn" onclick="toggleLanguage()" id="langToggleBtn">切換為簡體中文</button>
+    </div>
+
     <!-- 側邊欄選單 -->
     <div class="sidebar">
-        <h2>系統介面</h2>
-        <button class="tab-btn active" onclick="switchTab('translator')">📝 文章翻譯器</button>
-        <button class="tab-btn" onclick="switchTab('chat')">💬 匿名聊天室</button>
-        <button class="tab-btn" onclick="switchTab('report')">➕ 詞彙回報</button>
+        <h2 data-translate>系統介面</h2>
+        <!-- 預設為網站介紹 -->
+        <button class="tab-btn active" onclick="switchTab('intro')" data-translate>📖 網站介紹</button>
+        <button class="tab-btn" onclick="switchTab('translator')" data-translate>📝 文章翻譯器</button>
+        <button class="tab-btn" onclick="switchTab('chat')" data-translate>💬 匿名聊天室</button>
+        <button class="tab-btn" onclick="switchTab('report')" data-translate>➕ 詞彙回報</button>
     </div>
 
     <!-- 主內容區 -->
     <div class="main-content">
         
-        <!-- 文章翻譯器 -->
-        <div id="section-translator" class="section active">
-            <div class="translator-area">
-                <div class="output-box" id="trans-output">翻譯結果將顯示在此處...</div>
-                <div>
-                    <textarea id="trans-input" rows="4" placeholder="請輸入文章..."></textarea>
-                    <div class="hint">💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行</div>
+        <!-- 區塊0：網站介紹 (預設顯示) -->
+        <div id="section-intro" class="section active">
+            <h2 data-translate>📖 網站使用說明</h2>
+            <div class="intro-box">
+                <p><strong data-translate>📌 核心功能：</strong></p>
+                <ul>
+                    <li data-translate><strong>文章翻譯器：</strong>貼上長篇文章，系統會自動根據你選擇的語系，完美替換兩岸習慣用語。</li>
+                    <li data-translate><strong>匿名聊天室：</strong>點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。</li>
+                    <li data-translate><strong>詞彙回報：</strong>遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！</li>
+                </ul>
+                <div class="warning-box">
+                    <strong style="color: #ea9933;" data-translate>⚠️ 溫馨提示：</strong>
+                    <span data-translate>本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。請善用 Shift+Enter 進行換行！</span>
                 </div>
             </div>
         </div>
 
-        <!-- 匿名聊天室 -->
-        <div id="section-chat" class="section">
-            <div id="chat-history"></div>
+        <!-- 區塊1：文章翻譯器 -->
+        <div id="section-translator" class="section">
+            <h2 data-translate>📝 文章段落翻譯器</h2>
+            <div class="output-box" id="trans-output" data-translate>翻譯結果將顯示在此處...</div>
             <div>
-                <textarea id="chat-input" rows="3" placeholder="請輸入訊息..."></textarea>
-                <div class="hint">💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行</div>
+                <textarea id="trans-input" rows="4" data-translate placeholder="請輸入需要翻譯的文章..."></textarea>
+                <div class="hint" data-translate>💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行</div>
             </div>
         </div>
 
-        <!-- 詞彙回報功能 -->
+        <!-- 區塊2：匿名聊天室 -->
+        <div id="section-chat" class="section">
+            <h2 data-translate>💬 臨時匿名聊天室</h2>
+            
+            <div style="text-align: center; margin-bottom: 15px;" id="room-controls">
+                <button class="action-btn" onclick="createRoom()" id="createRoomBtn" data-translate>建立專屬聊天室</button>
+            </div>
+            
+            <div id="room-link-container">
+                <span data-translate>邀請連結：</span><span id="roomLink" style="font-weight: bold; color: #5865F2; user-select: all;"></span>
+                <button class="action-btn" onclick="copyLink()" style="padding: 5px 10px; font-size: 12px; margin-left: 10px;" data-translate>複製</button>
+            </div>
+
+            <div id="chatMessages"></div>
+            
+            <div>
+                <textarea id="chatInput" rows="3" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯..."></textarea>
+                <div class="hint" data-translate>💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行</div>
+                <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="sendMessage()" data-translate>發送訊息</button>
+            </div>
+        </div>
+
+        <!-- 區塊3：詞彙回報功能 -->
         <div id="section-report" class="section">
-            <h3 style="margin-top: 0;">大量回報新詞彙</h3>
+            <h2 data-translate>➕ 大量回報新詞彙</h2>
+            <label data-translate>回報類型：</label>
+            <select id="reportType">
+                <option value="missing" data-translate>沒有的用語</option>
+                <option value="wrong" data-translate>錯誤的用語</option>
+            </select>
+
             <div id="report-container">
+                <!-- 第一列不給刪除按鈕，避免全部被刪光 -->
                 <div class="report-row">
-                    <input type="text" placeholder="詞彙 A (例: 視頻)" class="word-a">
-                    <input type="text" placeholder="詞彙 B (例: 影片)" class="word-b">
+                    <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
+                    <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
                 </div>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="action-btn btn-add" onclick="addReportRow()">+ 新增一列</button>
-                <button class="action-btn" onclick="submitReport()">📥 送出回報</button>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button class="action-btn btn-add" onclick="addReportRow()" data-translate>+ 新增一列</button>
+                <button class="action-btn" onclick="submitReport()" data-translate>📥 送出回報</button>
             </div>
         </div>
 
     </div>
 
     <script>
-        // 核心邏輯：動態詞庫
-        let basePairs = [
-            ["屏幕", "螢幕"], ["視頻", "影片"], ["硬件", "硬體"], ["軟件", "軟體"],
-            ["內存", "記憶體"], ["程序員", "工程師"], ["公交車", "公車"], 
-            ["土豆", "馬鈴薯"], ["方便麵", "泡麵"], ["早上好", "早安"], ["三文魚", "鮭魚"]
-        ];
+        // ==========================================
+        // 1. OpenCC 繁簡轉換與語言介面邏輯
+        // ==========================================
+        let currentLang = 'zh-TW';
+        const tw2cn = OpenCC.Converter({ from: 'tw', to: 'cn' });
+        const cn2tw = OpenCC.Converter({ from: 'cn', to: 'tw' });
 
-        let dictionary = {};
+        function convertFont(text) {
+            if (!text) return text;
+            return currentLang === 'zh-CN' ? tw2cn(text) : cn2tw(text);
+        }
 
-        // 重建雙向字典
-        function buildDictionary() {
-            dictionary = {};
-            basePairs.forEach(pair => {
-                if(pair[0] && pair[1]) {
-                    dictionary[pair[0]] = pair[1];
-                    dictionary[pair[1]] = pair[0]; // 雙向綁定！
+        document.addEventListener('DOMContentLoaded', () => {
+            cacheOriginalText();
+            initLanguage();
+        });
+
+        // 緩存帶有 data-translate 的原始文字，方便隨時切換
+        function cacheOriginalText() {
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.placeholder && !el.hasAttribute('data-original-placeholder')) {
+                    el.setAttribute('data-original-placeholder', el.placeholder);
+                } else if (el.innerText && !el.hasAttribute('data-original-text') && el.children.length === 0) {
+                    el.setAttribute('data-original-text', el.innerText);
                 }
             });
         }
-        buildDictionary();
 
-        // 翻譯核心演算法 (解決雙向衝突問題)
-        function translateText(text) {
-            if (!text) return "";
-            // 將詞彙依長度由長到短排序，避免部分匹配錯誤
-            const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
-            // 建立正規表達式，一次性配對並替換
-            const regex = new RegExp(keys.join("|"), "g");
-            return text.replace(regex, matched => dictionary[matched]);
+        function initLanguage() {
+            const sysLang = navigator.language || navigator.userLanguage;
+            if (sysLang.toLowerCase().includes('cn') || sysLang.toLowerCase().includes('hans')) {
+                currentLang = 'zh-CN';
+            }
+            applyLanguage();
         }
 
-        // --- 介面控制邏輯 ---
+        function toggleLanguage() {
+            currentLang = currentLang === 'zh-TW' ? 'zh-CN' : 'zh-TW';
+            applyLanguage();
+        }
 
-        // 切換分頁
+        function applyLanguage() {
+            document.documentElement.lang = currentLang;
+            const toggleBtn = document.getElementById('langToggleBtn');
+            toggleBtn.innerText = currentLang === 'zh-TW' ? "切換為簡體中文" : "切换为繁体中文";
+
+            cacheOriginalText(); // 新增的 DOM (如回報欄位) 也需緩存
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.hasAttribute('data-original-placeholder')) {
+                    el.placeholder = convertFont(el.getAttribute('data-original-placeholder'));
+                } else if (el.hasAttribute('data-original-text') && el.children.length === 0) {
+                    el.innerText = convertFont(el.getAttribute('data-original-text'));
+                }
+            });
+
+            // 更新聊天室訊息
+            document.querySelectorAll('.message').forEach(msgDiv => {
+                if (msgDiv.hasAttribute('data-orig-text')) renderSingleMessage(msgDiv);
+                else if (msgDiv.hasAttribute('data-sys-text')) msgDiv.innerText = convertFont(msgDiv.getAttribute('data-sys-text'));
+            });
+        }
+
+        // ==========================================
+        // 2. 介面操作：分頁與按鍵監聽
+        // ==========================================
         function switchTab(tabId) {
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            
             document.getElementById('section-' + tabId).classList.add('active');
             event.currentTarget.classList.add('active');
         }
 
-        // 處理 Textarea 的 Enter 與 Shift+Enter 事件
+        // 支援 Shift+Enter 換行，單按 Enter 發送
         function handleKeydown(e, submitCallback) {
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // 阻止預設換行
+                e.preventDefault();
                 submitCallback();
             }
         }
 
-        // 文章翻譯器送出
+        // ==========================================
+        // 3. 字典載入與文章翻譯邏輯
+        // ==========================================
+        let dictionary = {};
+        
+        // 確保從後端獲取最新的字典檔
+        fetch('/dict.json')
+            .then(res => res.json())
+            .then(data => { dictionary = data; })
+            .catch(err => console.error('無法載入字典檔', err));
+
+        function translateText(text) {
+            if (!text || Object.keys(dictionary).length === 0) return text;
+
+            if (currentLang === 'zh-TW') {
+                // 繁體模式：CN -> TW
+                const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
+                if (keys.length === 0) return text;
+                const regex = new RegExp(keys.join('|'), 'g');
+                return text.replace(regex, (matched) => dictionary[matched]);
+            } else {
+                // 簡體模式：TW -> CN
+                const reverseDict = {};
+                Object.keys(dictionary).forEach(key => { if (dictionary[key]) reverseDict[dictionary[key]] = key; });
+                const values = Object.keys(reverseDict).sort((a, b) => b.length - a.length);
+                if (values.length === 0) return text;
+                const regex = new RegExp(values.join('|'), 'g');
+                return text.replace(regex, (matched) => reverseDict[matched]);
+            }
+        }
+
+        // 綁定文章翻譯器快捷鍵
         const transInput = document.getElementById('trans-input');
         transInput.addEventListener('keydown', (e) => handleKeydown(e, () => {
-            const text = transInput.value;
-            if(!text.trim()) return;
-            document.getElementById('trans-output').innerText = translateText(text);
-            transInput.value = ''; // 清空輸入框
+            const text = transInput.value.trim();
+            if(!text) return;
+            // 先過用語字典，再轉字體
+            const translatedTerms = translateText(text);
+            document.getElementById('trans-output').innerText = convertFont(translatedTerms);
         }));
 
-        // 聊天室送出
-        const chatInput = document.getElementById('chat-input');
-        chatInput.addEventListener('keydown', (e) => handleKeydown(e, () => {
-            const text = chatInput.value;
-            if(!text.trim()) return;
-            const translatedText = translateText(text);
-            
-            const chatHistory = document.getElementById('chat-history');
-            const msgDiv = document.createElement('div');
-            msgDiv.style.marginBottom = "10px";
-            msgDiv.innerHTML = `<b>匿名：</b> ${translatedText}`;
-            chatHistory.appendChild(msgDiv);
-            chatHistory.scrollTop = chatHistory.scrollHeight; // 自動捲動到底部
-            
-            chatInput.value = '';
-        }));
 
-        // 回報功能：新增列
+        // ==========================================
+        // 4. 回報功能 (支援無限新增與批次送出)
+        // ==========================================
         function addReportRow() {
             const container = document.getElementById('report-container');
             const row = document.createElement('div');
             row.className = 'report-row';
             row.innerHTML = `
-                <input type="text" placeholder="詞彙 A" class="word-a">
-                <input type="text" placeholder="詞彙 B" class="word-b">
+                <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
+                <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
+                <button class="btn-delete" onclick="removeReportRow(this)">✖</button>
             `;
             container.appendChild(row);
+            applyLanguage(); // 新增欄位後套用當前語系
         }
 
-        // 回報功能：送出
-        function submitReport() {
+        function removeReportRow(btn) {
+            btn.closest('.report-row').remove();
+        }
+
+        async function submitReport() {
+            const type = document.getElementById('reportType').value;
             const rows = document.querySelectorAll('.report-row');
-            let addedCount = 0;
+            let successCount = 0;
+            let totalToSubmit = 0;
 
-            rows.forEach(row => {
-                const wordA = row.querySelector('.word-a').value.trim();
-                const wordB = row.querySelector('.word-b').value.trim();
+            // 依序將所有欄位送出給後端 Discord Webhook API
+            for (let row of rows) {
+                const cnTerm = row.querySelector('.word-a').value.trim();
+                const twTerm = row.querySelector('.word-b').value.trim();
                 
-                if (wordA && wordB) {
-                    basePairs.push([wordA, wordB]);
-                    addedCount++;
+                if (cnTerm && twTerm) {
+                    totalToSubmit++;
+                    try {
+                        const res = await fetch('/api/report', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type, cnTerm, twTerm })
+                        });
+                        const data = await res.json();
+                        if (data.success) successCount++;
+                    } catch (err) {
+                        console.error('回報失敗:', err);
+                    }
                 }
-            });
+            }
 
-            if (addedCount > 0) {
-                buildDictionary(); // 重新整理雙向字典
-                alert(`成功新增 ${addedCount} 組詞彙！`);
-                // 清空重置
+            if (totalToSubmit === 0) {
+                alert(convertFont('請至少完整填寫一組用語！'));
+                return;
+            }
+
+            if (successCount > 0) {
+                alert(convertFont(`成功發送 ${successCount} 組用語回報至機器人審核！`));
+                // 清空並重置為預設的一行
                 document.getElementById('report-container').innerHTML = `
                     <div class="report-row">
-                        <input type="text" placeholder="詞彙 A (例: 視頻)" class="word-a">
-                        <input type="text" placeholder="詞彙 B (例: 影片)" class="word-b">
+                        <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
+                        <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
                     </div>`;
+                applyLanguage();
             } else {
-                alert("請至少完整填寫一組詞彙喔！");
+                alert(convertFont('回報失敗，請檢查連線狀態。'));
             }
         }
+
+
+        // ==========================================
+        // 5. Socket.io 聊天室邏輯
+        // ==========================================
+        let socket;
+        let currentRoom = null;
+        let myId = "User_" + Math.floor(Math.random() * 10000); 
+
+        function initChat() {
+            socket = io();
+            
+            socket.on('receiveMessage', (data) => {
+                const isSelf = data.id === myId;
+                addMessageToChat(data.id, data.text, isSelf);
+            });
+            
+            socket.on('sysMessage', (msg) => { addSysMessage(msg); });
+
+            socket.on('roomCreated', (data) => {
+                currentRoom = data.room;
+                const url = new URL(window.location.href);
+                url.searchParams.set('room', currentRoom);
+                
+                document.getElementById('roomLink').innerText = url.href;
+                document.getElementById('room-link-container').style.display = 'block';
+                document.getElementById('createRoomBtn').style.display = 'none';
+            });
+
+            socket.on('roomError', (msg) => {
+                alert(convertFont(msg));
+                window.location.href = window.location.pathname;
+            });
+        }
+
+        function createRoom() {
+            if (!socket) initChat();
+            socket.emit('createRoom', { id: myId });
+        }
+
+        function joinExistingRoom(roomId) {
+            if (!socket) initChat();
+            currentRoom = roomId;
+            socket.emit('joinRoom', { room: currentRoom, id: myId });
+            
+            // UI 調整
+            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('section-chat').classList.add('active');
+            document.querySelectorAll('.tab-btn')[2].classList.add('active'); // 聊天室按鈕亮起
+            
+            document.getElementById('createRoomBtn').style.display = 'none';
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (text && currentRoom) {
+                socket.emit('sendMessage', { room: currentRoom, text: text, id: myId });
+                input.value = '';
+            } else if (!currentRoom) {
+                alert(convertFont('請先建立或加入一個聊天室！'));
+            }
+        }
+
+        // 綁定聊天室輸入框快捷鍵
+        const chatInput = document.getElementById('chatInput');
+        chatInput.addEventListener('keydown', (e) => handleKeydown(e, sendMessage));
+
+        function addMessageToChat(id, originalText, isSelf) {
+            const container = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isSelf ? 'msg-self' : 'msg-other'}`;
+            
+            msgDiv.setAttribute('data-sender-id', id);
+            msgDiv.setAttribute('data-orig-text', originalText);
+            
+            renderSingleMessage(msgDiv);
+            
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderSingleMessage(msgDiv) {
+            const id = msgDiv.getAttribute('data-sender-id');
+            const originalText = msgDiv.getAttribute('data-orig-text');
+            
+            // 套用語系翻譯邏輯
+            const displayText = translateText(originalText);
+
+            if (originalText !== displayText) {
+                const titleText = `原文：${originalText}`;
+                msgDiv.setAttribute('data-original-title', titleText);
+                msgDiv.title = convertFont(titleText);
+                msgDiv.style.cursor = 'help';
+            } else {
+                msgDiv.removeAttribute('title');
+                msgDiv.removeAttribute('data-original-title');
+                msgDiv.style.cursor = 'default';
+            }
+            
+            // Header: 名字小字體顯示
+            const headerColor = msgDiv.classList.contains('msg-self') ? '#c7d0f8' : '#8e9297';
+            msgDiv.innerHTML = `<div style="font-size: 12px; color: ${headerColor}; margin-bottom: 4px;">${id}</div>${convertFont(displayText).replace(/\n/g, '<br>')}`;
+        }
+
+        function addSysMessage(text) {
+            const container = document.getElementById('chatMessages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message msg-sys`;
+            
+            msgDiv.setAttribute('data-sys-text', text);
+            msgDiv.innerText = convertFont(text);
+            
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function copyLink() {
+            const link = document.getElementById('roomLink').innerText;
+            navigator.clipboard.writeText(link).then(() => alert(convertFont('已複製邀請連結！')));
+        }
+
+        // 網頁載入時判斷網址是否帶有聊天室參數
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room');
+            if (roomId) { joinExistingRoom(roomId); }
+        };
     </script>
 </body>
 </html>

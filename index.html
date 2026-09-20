@@ -49,11 +49,28 @@
         <button class="lang-btn" onclick="toggleLanguage()" id="langToggleBtn">切換為簡體中文</button>
     </div>
 
+    <!-- 區塊：網站使用說明 -->
+    <div class="container">
+        <h2 data-translate>📖 網站使用說明</h2>
+        <div style="line-height: 1.8; color: #444; font-size: 15px;">
+            <p><strong data-translate>📌 核心功能：</strong></p>
+            <ul style="margin-top: 5px;">
+                <li data-translate><strong>用語查詢：</strong>輸入你想了解的兩岸用語，系統會自動給出對應翻譯。</li>
+                <li data-translate><strong>匿名聊天：</strong>點擊「建立專屬聊天室」即可產生專屬連結。分享給朋友後，雙方的對話會自動轉換字體與用語（游標移至文字上可查看原文）。</li>
+                <li data-translate><strong>社群回報：</strong>遇到沒翻譯到的詞彙？點擊「回報用語」，你的建議將有機會被加入系統字典！</li>
+            </ul>
+            <div style="background-color: #fdf2e9; border-left: 4px solid #e67e22; padding: 10px 15px; margin-top: 15px; border-radius: 4px;">
+                <strong style="color: #d35400;" data-translate>⚠️ 溫馨提示：</strong>
+                <span data-translate>本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。</span>
+            </div>
+        </div>
+    </div>
+
     <!-- 區塊一：手動查詢 -->
     <div class="container">
         <h1 data-translate>兩岸用語翻譯機</h1>
         <div class="input-group">
-            <input type="text" id="searchInput" data-translate placeholder="輸入用語 (例如：屏幕 或 螢幕)">
+            <input type="text" id="searchInput" data-translate placeholder="輸入用語 (例如：屏幕 或 螢幕)" onkeydown="if(event.key==='Enter') searchTerm()">
             <button onclick="searchTerm()" data-translate>查詢</button>
             <button class="btn-report" onclick="openReportModal()" data-translate>回報用語</button>
         </div>
@@ -75,7 +92,7 @@
         <div class="chat-container" id="chatContainer">
             <div class="chat-messages" id="chatMessages"></div>
             <div class="chat-input">
-                <input type="text" id="chatInput" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯...">
+                <input type="text" id="chatInput" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯..." onkeydown="handleEnter(event)">
                 <button onclick="sendMessage()" data-translate>發送</button>
             </div>
         </div>
@@ -157,17 +174,10 @@
                 }
             });
 
-            // 2. 更新已經產生的聊天室訊息
+            // 2. 更新已經產生的聊天室訊息 (重新計算用語與字體)
             document.querySelectorAll('.message').forEach(msgDiv => {
-                // 更新 tooltip 原文提示
-                if (msgDiv.hasAttribute('data-original-title')) {
-                    msgDiv.title = convertFont(msgDiv.getAttribute('data-original-title'));
-                }
-                // 更新對話內容
-                if (msgDiv.hasAttribute('data-disp-text')) {
-                    const senderId = msgDiv.getAttribute('data-sender-id');
-                    const text = msgDiv.getAttribute('data-disp-text');
-                    msgDiv.innerHTML = `<small style="color:#7f8c8d;">${senderId}</small><br>${convertFont(text)}`;
+                if (msgDiv.hasAttribute('data-orig-text')) {
+                    renderSingleMessage(msgDiv);
                 } else if (msgDiv.hasAttribute('data-sys-text')) {
                     // 更新系統通知
                     msgDiv.innerText = convertFont(msgDiv.getAttribute('data-sys-text'));
@@ -176,28 +186,53 @@
         }
 
 
-        // --- 2. 字典載入與查詢邏輯 ---
+        // --- 2. 字典載入與雙向查詢邏輯 ---
         let dictionary = {};
         fetch('/dict.json')
             .then(res => res.json())
             .then(data => { dictionary = data; })
             .catch(err => console.error('無法載入字典檔', err));
 
+        // 用語翻譯核心函式 (根據目前語系進行雙向替換)
         function translateText(text) {
             if (!text || Object.keys(dictionary).length === 0) return text;
-            const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
-            const regex = new RegExp(keys.join('|'), 'g');
-            return text.replace(regex, (matched) => dictionary[matched]);
+
+            if (currentLang === 'zh-TW') {
+                // 繁體語系：中國用語 (Key) -> 台灣用語 (Value)
+                const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
+                if (keys.length === 0) return text;
+                const regex = new RegExp(keys.join('|'), 'g');
+                return text.replace(regex, (matched) => dictionary[matched]);
+            } else {
+                // 簡體語系：台灣用語 (Value) -> 中國用語 (Key)
+                const reverseDict = {};
+                Object.keys(dictionary).forEach(key => {
+                    if (dictionary[key]) reverseDict[dictionary[key]] = key;
+                });
+                const values = Object.keys(reverseDict).sort((a, b) => b.length - a.length);
+                if (values.length === 0) return text;
+                const regex = new RegExp(values.join('|'), 'g');
+                return text.replace(regex, (matched) => reverseDict[matched]);
+            }
         }
 
+        // 雙向字典查詢
         function searchTerm() {
             const input = document.getElementById('searchInput').value.trim();
             const resultBox = document.getElementById('searchResult');
             if (!input) return;
 
+            // 1. 先查中國用語 -> 台灣用語
             let result = dictionary[input];
+
+            // 2. 查不到則反查台灣用語 -> 中國用語
+            if (!result) {
+                const foundKey = Object.keys(dictionary).find(k => dictionary[k] === input);
+                if (foundKey) result = foundKey;
+            }
+
             if (result) {
-                resultBox.innerHTML = `<strong>${input}</strong> ${convertFont('的對應用語為：')} <strong style="color:#e74c3c;">${result}</strong>`;
+                resultBox.innerHTML = `<strong>${input}</strong> ${convertFont('的對應用語為：')} <strong style="color:#e74c3c;">${convertFont(result)}</strong>`;
             } else {
                 resultBox.innerHTML = convertFont('目前字典中找不到這個詞彙。');
             }
@@ -249,9 +284,7 @@
             
             socket.on('receiveMessage', (data) => {
                 const isSelf = data.id === myId;
-                // 1. 替換兩岸專屬用語 (只有對方的訊息需要過字典)
-                const termTranslatedText = isSelf ? data.text : translateText(data.text);
-                addMessageToChat(data.id, data.text, termTranslatedText, isSelf);
+                addMessageToChat(data.id, data.text, isSelf);
             });
             
             socket.on('sysMessage', (msg) => { addSysMessage(msg); });
@@ -297,29 +330,42 @@
 
         function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
 
-        // 渲染對話訊息
-        function addMessageToChat(id, originalText, displayText, isSelf) {
+        // 建立對話訊息元素
+        function addMessageToChat(id, originalText, isSelf) {
             const container = document.getElementById('chatMessages');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isSelf ? 'msg-self' : 'msg-other'}`;
             
-            // 綁定自訂屬性，讓切換語言時可以重新抓原始資料渲染
             msgDiv.setAttribute('data-sender-id', id);
             msgDiv.setAttribute('data-orig-text', originalText);
-            msgDiv.setAttribute('data-disp-text', displayText);
             
-            // 如果對方發送且有被字典翻譯過，增加 Hover 提示
-            if (!isSelf && originalText !== displayText) {
+            renderSingleMessage(msgDiv);
+            
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 渲染單一對話訊息（根據當前語系計算用語與 Hover 提示）
+        function renderSingleMessage(msgDiv) {
+            const id = msgDiv.getAttribute('data-sender-id');
+            const originalText = msgDiv.getAttribute('data-orig-text');
+            
+            // 根據目前語系計算翻譯後的用語
+            const displayText = translateText(originalText);
+
+            // 若有經過字典翻譯，增加 Hover 原文提示
+            if (originalText !== displayText) {
                 const titleText = `原文：${originalText}`;
                 msgDiv.setAttribute('data-original-title', titleText);
                 msgDiv.title = convertFont(titleText);
                 msgDiv.style.cursor = 'help';
+            } else {
+                msgDiv.removeAttribute('title');
+                msgDiv.removeAttribute('data-original-title');
+                msgDiv.style.cursor = 'default';
             }
             
-            // 套用 OpenCC 繁簡轉換後顯示
             msgDiv.innerHTML = `<small style="color:#7f8c8d;">${id}</small><br>${convertFont(displayText)}`;
-            container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
         }
 
         // 渲染系統訊息

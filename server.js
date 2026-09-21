@@ -3,6 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs');//引入檔案讀寫模組
 // 引入 Discord 機器人套件
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
@@ -13,6 +14,11 @@ const { getFirestore } = require('firebase-admin/firestore');
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+const backupDir = path.join(__dirname, 'backups');
+if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir);
+}
 
 // --- Firebase 初始化 ---
 let serviceAccount;
@@ -64,6 +70,24 @@ async function updateFirebaseDict(cnTerm, twTerm) {
     await dictDocRef.set({
         [cnTerm]: twTerm
     }, { merge: true });
+}
+
+async function backupDictionary() {
+    try {
+        const doc = await dictDocRef.get();
+        if (doc.exists) {
+            const data = doc.data();
+            // 產生如 2026-09-21T18-30-00 格式的時間戳記
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filePath = path.join(backupDir, `dict_backup_${timestamp}.json`);
+            
+            // 將整份 Firebase 字典寫入本地端檔案
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+            console.log(`✅ 字典已成功本地備份至: ${filePath}`);
+        }
+    } catch (err) {
+        console.error('❌ 備份字典失敗:', err);
+    }
 }
 
 // --- 接收前端回報，並發送附帶按鈕的 Discord 訊息 (維持原樣) ---
@@ -145,6 +169,9 @@ discordClient.on('interactionCreate', async interaction => {
         try {
             // 呼叫寫入 Firebase 函式
             await updateFirebaseDict(cnTerm, twTerm);
+
+            // 👇 新增這行：觸發本地自動備份
+            await backupDictionary();
             
             // 修改原始訊息（注意：換成 Firebase 後是「即時生效」！）
             await interaction.editReply({ 

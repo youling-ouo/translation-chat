@@ -1,677 +1,1095 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title data-translate>兩岸用語翻譯與匿名聊天系統</title>
     <style>
-        :root {
-            --bg-color: #36393f;
-            --panel-bg: #2f3136;
-            --text-color: #dcddde;
-            --primary: #5865F2;
-            --primary-hover: #4752c4;
-            --border-radius: 8px;
-        }
+      :root {
+        --bg-color: #36393f;
+        --panel-bg: #2f3136;
+        --text-color: #dcddde;
+        --primary: #5865f2;
+        --primary-hover: #4752c4;
+        --border-radius: 8px;
+      }
 
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        margin: 0;
+        display: flex;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      /* 頂部行動版專用 Header */
+      .mobile-header {
+        display: none;
+        background-color: #202225;
+        padding: 10px 15px;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+      }
+      .hamburger-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      /* 頂部語系切換列 (桌面版) */
+      .top-bar-container {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        z-index: 100;
+      }
+      .lang-btn {
+        background: #202225;
+        color: white;
+        border: 1px solid #40444b;
+        padding: 8px 15px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 14px;
+      }
+      .lang-btn:hover {
+        background: #40444b;
+      }
+
+      /* 側邊欄設計 */
+      .sidebar {
+        width: 250px;
+        background-color: #202225;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 1000;
+        transition: transform 0.3s ease;
+      }
+      .sidebar h2 {
+        font-size: 18px;
+        margin-bottom: 20px;
+        color: #fff;
+        text-align: center;
+      }
+      .tab-btn {
+        background-color: transparent;
+        color: var(--text-color);
+        border: none;
+        padding: 12px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 16px;
+        text-align: left;
+        transition: 0.2s;
+      }
+      .tab-btn:hover {
+        background-color: #393c43;
+      }
+      .tab-btn.active {
+        background-color: var(--primary);
+        color: #fff;
+      }
+
+      /* 行動版側邊欄遮罩 */
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+      }
+
+      /* 主內容區 */
+      .main-wrapper {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .main-content {
+        flex: 1;
+        padding: 30px 40px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow-y: auto;
+      }
+      .section {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+      }
+      .section.active {
+        display: flex;
+      }
+
+      h2,
+      h3 {
+        color: #fff;
+        margin-top: 0;
+      }
+
+      /* 輸入與輸出區域 (字體設定為 16px 防止 iOS 縮放) */
+      textarea,
+      input,
+      select {
+        width: 100%;
+        background-color: #40444b;
+        border: none;
+        color: #fff;
+        padding: 15px;
+        border-radius: var(--border-radius);
+        resize: none;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: 2px solid var(--primary);
+      }
+
+      .output-box {
+        flex: 1;
+        background-color: var(--panel-bg);
+        padding: 20px;
+        border-radius: var(--border-radius);
+        overflow-y: auto;
+        white-space: pre-wrap;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .hint {
+        font-size: 12px;
+        color: #8e9297;
+        margin-top: 5px;
+      }
+
+      /* 雙欄顯示容器 */
+      .split-container {
+        display: flex;
+        gap: 20px;
+        flex: 1;
+        margin-bottom: 20px;
+      }
+      .split-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 150px;
+      }
+      .split-box .output-box {
+        margin-bottom: 0;
+      }
+
+      /* 聊天室專用 */
+      #chatMessages {
+        flex: 1;
+        background-color: var(--panel-bg);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+      }
+      .message {
+        padding: 10px 15px;
+        border-radius: 10px;
+        max-width: 70%;
+        line-height: 1.4;
+        margin-bottom: 10px;
+        word-wrap: break-word;
+      }
+      .msg-sys {
+        text-align: center;
+        color: #8e9297;
+        font-size: 13px;
+        margin: 0 auto 10px auto;
+      }
+      .msg-self {
+        background-color: var(--primary);
+        color: #fff;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+      }
+      .msg-other {
+        background-color: #40444b;
+        color: #fff;
+        align-self: flex-start;
+        border-bottom-left-radius: 2px;
+      }
+      #room-link-container {
+        display: none;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: #2f3136;
+        border-radius: var(--border-radius);
+        text-align: center;
+        border: 1px dashed #5865f2;
+      }
+
+      /* 回報功能與通用按鈕 */
+      .report-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        align-items: center;
+      }
+      select {
+        margin-bottom: 20px;
+      }
+      .action-btn {
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 15px;
+        transition: 0.2s;
+      }
+      .action-btn:hover {
+        background-color: var(--primary-hover);
+      }
+      .btn-add {
+        background-color: #3ba55c;
+      }
+      .btn-add:hover {
+        background-color: #2d7d46;
+      }
+
+      /* 補回原本的 hover 動畫 */
+      .btn-delete {
+        background-color: #ed4245;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+      }
+      .btn-delete:hover {
+        background-color: #c9383b;
+      }
+
+      /* 網站介紹專用 */
+      .intro-box {
+        background: var(--panel-bg);
+        padding: 30px;
+        border-radius: var(--border-radius);
+        line-height: 1.8;
+        font-size: 16px;
+      }
+      .intro-box ul {
+        margin-top: 10px;
+        padding-left: 20px;
+      }
+      .intro-box li {
+        margin-bottom: 10px;
+      }
+      .warning-box {
+        background-color: rgba(234, 153, 51, 0.1);
+        border-left: 4px solid #ea9933;
+        padding: 15px;
+        margin-top: 20px;
+        border-radius: 4px;
+      }
+
+      /* 手機版 RWD 設定 */
+      @media (max-width: 768px) {
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            height: 100dvh; 
-            overflow: hidden;
+          flex-direction: column;
         }
-
-        /* 頂部行動版專用 Header */
         .mobile-header {
-            display: none; 
-            background-color: #202225;
-            padding: 10px 15px;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 100;
+          display: flex;
         }
-        .hamburger-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        /* 頂部語系切換列 (桌面版) */
         .top-bar-container {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            z-index: 100;
+          display: none;
         }
-        .lang-btn {
-            background: #202225;
-            color: white;
-            border: 1px solid #40444b;
-            padding: 8px 15px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 14px;
-        }
-        .lang-btn:hover { background: #40444b; }
 
-        /* 側邊欄設計 */
         .sidebar {
-            width: 250px;
-            background-color: #202225;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 1000;
-            transition: transform 0.3s ease;
+          position: fixed;
+          left: 0;
+          top: 0;
+          height: 100dvh;
+          transform: translateX(-100%);
+          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+          padding-top: 60px;
         }
-        .sidebar h2 { font-size: 18px; margin-bottom: 20px; color: #fff; text-align: center; }
-        .tab-btn {
-            background-color: transparent;
-            color: var(--text-color);
-            border: none;
-            padding: 12px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-size: 16px;
-            text-align: left;
-            transition: 0.2s;
+        .sidebar.open {
+          transform: translateX(0);
         }
-        .tab-btn:hover { background-color: #393c43; }
-        .tab-btn.active { background-color: var(--primary); color: #fff; }
-
-        /* 行動版側邊欄遮罩 */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-
-        /* 主內容區 */
-        .main-wrapper {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
+        .sidebar-overlay.active {
+          display: block;
         }
         .main-content {
-            flex: 1;
-            padding: 30px 40px;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow-y: auto;
+          padding: 15px 20px;
         }
-        .section { display: none; flex-direction: column; height: 100%; }
-        .section.active { display: flex; }
-
-        h2, h3 { color: #fff; margin-top: 0; }
-
-        /* 輸入與輸出區域 (字體設定為 16px 防止 iOS 縮放) */
-        textarea, input, select {
-            width: 100%;
-            background-color: #40444b;
-            border: none;
-            color: #fff;
-            padding: 15px;
-            border-radius: var(--border-radius);
-            resize: none;
-            font-size: 16px; 
-            box-sizing: border-box;
+        .intro-box {
+          padding: 20px;
         }
-        textarea:focus, input:focus, select:focus { outline: 2px solid var(--primary); }
-        
-        .output-box {
-            flex: 1;
-            background-color: var(--panel-bg);
-            padding: 20px;
-            border-radius: var(--border-radius);
-            overflow-y: auto;
-            white-space: pre-wrap;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        .hint { font-size: 12px; color: #8e9297; margin-top: 5px; }
-
-        /* 雙欄顯示容器 */
         .split-container {
-            display: flex;
-            gap: 20px;
-            flex: 1;
-            margin-bottom: 20px;
+          flex-direction: column;
+          gap: 15px;
         }
         .split-box {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 150px;
+          min-height: 120px;
         }
-        .split-box .output-box { margin-bottom: 0; }
-
-        /* 聊天室專用 */
-        #chatMessages {
-            flex: 1;
-            background-color: var(--panel-bg);
-            border-radius: var(--border-radius);
-            padding: 20px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
+        .split-box .output-box {
+          padding: 15px;
         }
-        .message { padding: 10px 15px; border-radius: 10px; max-width: 70%; line-height: 1.4; margin-bottom: 10px; word-wrap: break-word; }
-        .msg-sys { text-align: center; color: #8e9297; font-size: 13px; margin: 0 auto 10px auto; }
-        .msg-self { background-color: var(--primary); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .msg-other { background-color: #40444b; color: #fff; align-self: flex-start; border-bottom-left-radius: 2px; }
-        #room-link-container { display: none; margin-bottom: 15px; padding: 10px; background: #2f3136; border-radius: var(--border-radius); text-align: center; border: 1px dashed #5865F2;}
-
-        /* 回報功能與通用按鈕 */
-        .report-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
-        select { margin-bottom: 20px; }
-        .action-btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            font-size: 15px;
-            transition: 0.2s;
+        .message {
+          max-width: 90%;
         }
-        .action-btn:hover { background-color: var(--primary-hover); }
-        .btn-add { background-color: #3ba55c; }
-        .btn-add:hover { background-color: #2d7d46; }
-        
-        /* 補回原本的 hover 動畫 */
-        .btn-delete {
-            background-color: #ed4245;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.2s;
+        #roomLink {
+          display: block;
+          margin-top: 5px;
+          word-break: break-all;
         }
-        .btn-delete:hover { background-color: #c9383b; }
-
-        /* 網站介紹專用 */
-        .intro-box { background: var(--panel-bg); padding: 30px; border-radius: var(--border-radius); line-height: 1.8; font-size: 16px; }
-        .intro-box ul { margin-top: 10px; padding-left: 20px; }
-        .intro-box li { margin-bottom: 10px; }
-        .warning-box { background-color: rgba(234, 153, 51, 0.1); border-left: 4px solid #ea9933; padding: 15px; margin-top: 20px; border-radius: 4px; }
-
-        /* 手機版 RWD 設定 */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            .mobile-header { display: flex; }
-            .top-bar-container { display: none; } 
-            
-            .sidebar {
-                position: fixed;
-                left: 0;
-                top: 0;
-                height: 100dvh;
-                transform: translateX(-100%);
-                box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-                padding-top: 60px;
-            }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.active { display: block; }
-            .main-content { padding: 15px 20px; }
-            .intro-box { padding: 20px; }
-            .split-container { flex-direction: column; gap: 15px; }
-            .split-box { min-height: 120px; }
-            .split-box .output-box { padding: 15px; }
-            .message { max-width: 90%; }
-            #roomLink { display: block; margin-top: 5px; word-break: break-all; }
-        }
+      }
     </style>
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/opencc-js@1.0.5/dist/umd/full.js"></script>
-</head>
-<body>
-
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  </head>
+  <body>
+    <div
+      class="sidebar-overlay"
+      id="sidebarOverlay"
+      onclick="toggleSidebar()"
+    ></div>
 
     <div class="top-bar-container">
-        <button class="lang-btn" onclick="toggleLanguage()">切換為簡體中文</button>
+      <button class="lang-btn" onclick="toggleLanguage()">
+        切換為簡體中文
+      </button>
     </div>
 
     <div class="sidebar" id="sidebar">
-        <h2 data-translate>系統介面</h2>
-        <button class="tab-btn active" onclick="switchTab('intro')" data-translate>📖 網站介紹</button>
-        <button class="tab-btn" onclick="switchTab('translator')" data-translate>📝 文章翻譯器</button>
-        <button class="tab-btn" onclick="switchTab('chat')" data-translate>💬 匿名聊天室</button>
-        <button class="tab-btn" onclick="switchTab('report')" data-translate>➕ 詞彙回報</button>
-        <button class="tab-btn" onclick="switchTab('feedback')" data-translate>💡 意見回饋</button>
+      <h2 data-translate>系統介面</h2>
+      <button
+        class="tab-btn active"
+        onclick="switchTab('intro')"
+        data-translate
+      >
+        📖 網站介紹
+      </button>
+      <button class="tab-btn" onclick="switchTab('dictView')" data-translate>
+        📚 詞彙字典庫
+      </button>
+      <button class="tab-btn" onclick="switchTab('translator')" data-translate>
+        📝 文章翻譯器
+      </button>
+      <button class="tab-btn" onclick="switchTab('chat')" data-translate>
+        💬 匿名聊天室
+      </button>
+      <button class="tab-btn" onclick="switchTab('report')" data-translate>
+        ➕ 詞彙回報
+      </button>
+      <button class="tab-btn" onclick="switchTab('feedback')" data-translate>
+        💡 意見回饋
+      </button>
     </div>
 
     <div class="main-wrapper">
-        <div class="mobile-header">
-            <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
-            <button class="lang-btn" onclick="toggleLanguage()" style="margin:0;">切換為簡體中文</button>
+      <div class="mobile-header">
+        <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+        <button class="lang-btn" onclick="toggleLanguage()" style="margin: 0">
+          切換為簡體中文
+        </button>
+      </div>
+
+      <div class="main-content">
+        <div id="section-intro" class="section active">
+          <h2 data-translate>📖 網站使用說明</h2>
+          <div class="intro-box">
+            <p><strong data-translate>📌 核心功能：</strong></p>
+            <ul>
+              <li data-translate>
+                <strong>文章翻譯器：</strong
+                >貼上長篇文章，系統會自動根據你選擇的語系，完美替換兩岸習慣用語。
+              </li>
+              <li data-translate>
+                <strong>匿名聊天室：</strong
+                >點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。
+              </li>
+              <li data-translate>
+                <strong>詞彙回報：</strong
+                >遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！
+              </li>
+              <li data-translate>
+                <strong>意見回饋：</strong>有任何新點子或發現
+                Bug，都可以透過回饋信箱告訴我們！
+              </li>
+            </ul>
+            <div class="warning-box">
+              <strong style="color: #ea9933" data-translate
+                >⚠️ 溫馨提示：</strong
+              >
+              <span data-translate
+                >本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。請善用
+                Shift+Enter 進行換行！</span
+              >
+            </div>
+          </div>
         </div>
 
-        <div class="main-content">
-            
-            <div id="section-intro" class="section active">
-                <h2 data-translate>📖 網站使用說明</h2>
-                <div class="intro-box">
-                    <p><strong data-translate>📌 核心功能：</strong></p>
-                    <ul>
-                        <li data-translate><strong>文章翻譯器：</strong>貼上長篇文章，系統會自動根據你選擇的語系，完美替換兩岸習慣用語。</li>
-                        <li data-translate><strong>匿名聊天室：</strong>點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。</li>
-                        <li data-translate><strong>詞彙回報：</strong>遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！</li>
-                        <li data-translate><strong>意見回饋：</strong>有任何新點子或發現 Bug，都可以透過回饋信箱告訴我們！</li>
-                    </ul>
-                    <div class="warning-box">
-                        <strong style="color: #ea9933;" data-translate>⚠️ 溫馨提示：</strong>
-                        <span data-translate>本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。請善用 Shift+Enter 進行換行！</span>
-                    </div>
-                </div>
-            </div>
+        <div id="section-dictView" class="section">
+          <h2 data-translate>📚 詞彙字典庫</h2>
+          <div style="margin-bottom: 15px">
+            <input
+              type="text"
+              id="dictSearch"
+              placeholder="搜尋中國用語或台灣用語..."
+              onkeyup="filterDict()"
+              data-translate
+            />
+          </div>
+          <div
+            style="margin-bottom: 10px; font-size: 14px; color: #8e9297"
+            id="dictCount"
+          ></div>
 
-            <div id="section-translator" class="section">
-                <h2 data-translate>📝 文章段落翻譯器</h2>
-                
-                <div class="split-container">
-                    <div class="split-box">
-                        <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇹🇼 台灣用語輸出</h3>
-                        <div class="output-box" id="trans-output-tw" data-translate>翻譯結果將顯示在此處...</div>
-                    </div>
-                    <div class="split-box">
-                        <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇨🇳 中國用語輸出</h3>
-                        <div class="output-box" id="trans-output-cn" data-translate>翻譯結果將顯示在此處...</div>
-                    </div>
-                </div>
-
-                <div>
-                    <textarea id="trans-input" rows="4" data-translate placeholder="請輸入需要翻譯的文章..."></textarea>
-                    <div class="hint" data-translate>💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行</div>
-                </div>
-            </div>
-
-            <div id="section-chat" class="section">
-                <h2 data-translate>💬 臨時匿名聊天室</h2>
-                <div style="text-align: center; margin-bottom: 15px;" id="room-controls">
-                    <button class="action-btn" onclick="createRoom()" id="createRoomBtn" data-translate>建立專屬聊天室</button>
-                </div>
-                <div id="room-link-container">
-                    <span data-translate>邀請連結：</span><span id="roomLink" style="font-weight: bold; color: #5865F2; user-select: all;"></span>
-                    <button class="action-btn" onclick="copyLink()" style="padding: 5px 10px; font-size: 12px; margin-left: 10px;" data-translate>複製</button>
-                </div>
-                <div id="chatMessages"></div>
-                <div>
-                    <textarea id="chatInput" rows="3" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯..."></textarea>
-                    <div class="hint" data-translate>💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行</div>
-                    <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="sendMessage()" data-translate>發送訊息</button>
-                </div>
-            </div>
-
-            <div id="section-report" class="section">
-                <h2 data-translate>➕ 大量回報新詞彙</h2>
-                <label data-translate>回報類型：</label>
-                <select id="reportType">
-                    <option value="missing" data-translate>沒有的用語</option>
-                    <option value="wrong" data-translate>錯誤的用語</option>
-                </select>
-                <div id="report-container">
-                    <div class="report-row">
-                        <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
-                        <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 10px;">
-                    <button class="action-btn btn-add" onclick="addReportRow()" data-translate>+ 新增一列</button>
-                    <button class="action-btn" onclick="submitReport()" data-translate>📥 送出回報</button>
-                </div>
-            </div>
-
-            <div id="section-feedback" class="section">
-                <h2 data-translate>💡 意見回饋</h2>
-                <p data-translate style="margin-bottom: 15px; color: #dcddde;">有任何功能建議或發現系統錯誤嗎？請在下方留言告訴我們！</p>
-                <div style="flex: 1; display: flex; flex-direction: column;">
-                    <!-- 這個輸入框不綁定 Enter 事件，預設支援 Shift+Enter 換行 -->
-                    <textarea id="feedbackInput" style="flex: 1; margin-bottom: 20px;" data-translate placeholder="請輸入您的意見回饋..."></textarea>
-                    <button class="action-btn" style="padding: 15px; font-size: 16px; width: 100%; font-weight: bold;" onclick="submitFeedback()" data-translate>📤 送出回饋</button>
-                </div>
-            </div>
-
+          <div
+            class="output-box"
+            style="padding: 0; max-height: 60vh; overflow-y: auto"
+          >
+            <table
+              style="width: 100%; border-collapse: collapse; text-align: left"
+            >
+              <thead
+                style="
+                  background-color: #202225;
+                  position: sticky;
+                  top: 0;
+                  z-index: 10;
+                "
+              >
+                <tr>
+                  <th
+                    style="padding: 12px; border-bottom: 1px solid #40444b"
+                    data-translate
+                  >
+                    中國用語
+                  </th>
+                  <th
+                    style="padding: 12px; border-bottom: 1px solid #40444b"
+                    data-translate
+                  >
+                    台灣用語
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="dictTableBody">
+                <!-- 字典內容會由 JS 渲染在這裡 -->
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        <div id="section-translator" class="section">
+          <h2 data-translate>📝 文章段落翻譯器</h2>
+
+          <div class="split-container">
+            <div class="split-box">
+              <h3
+                data-translate
+                style="font-size: 16px; margin-bottom: 10px; color: #8e9297"
+              >
+                🇹🇼 台灣用語輸出
+              </h3>
+              <div class="output-box" id="trans-output-tw" data-translate>
+                翻譯結果將顯示在此處...
+              </div>
+            </div>
+            <div class="split-box">
+              <h3
+                data-translate
+                style="font-size: 16px; margin-bottom: 10px; color: #8e9297"
+              >
+                🇨🇳 中國用語輸出
+              </h3>
+              <div class="output-box" id="trans-output-cn" data-translate>
+                翻譯結果將顯示在此處...
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <textarea
+              id="trans-input"
+              rows="4"
+              data-translate
+              placeholder="請輸入需要翻譯的文章..."
+            ></textarea>
+            <div class="hint" data-translate>
+              💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行
+            </div>
+          </div>
+        </div>
+
+        <div id="section-chat" class="section">
+          <h2 data-translate>💬 臨時匿名聊天室</h2>
+          <div
+            style="text-align: center; margin-bottom: 15px"
+            id="room-controls"
+          >
+            <button
+              class="action-btn"
+              onclick="createRoom()"
+              id="createRoomBtn"
+              data-translate
+            >
+              建立專屬聊天室
+            </button>
+          </div>
+          <div id="room-link-container">
+            <span data-translate>邀請連結：</span
+            ><span
+              id="roomLink"
+              style="font-weight: bold; color: #5865f2; user-select: all"
+            ></span>
+            <button
+              class="action-btn"
+              onclick="copyLink()"
+              style="padding: 5px 10px; font-size: 12px; margin-left: 10px"
+              data-translate
+            >
+              複製
+            </button>
+          </div>
+          <div id="chatMessages"></div>
+          <div>
+            <textarea
+              id="chatInput"
+              rows="3"
+              data-translate
+              placeholder="輸入訊息，系統將自動轉換與翻譯..."
+            ></textarea>
+            <div class="hint" data-translate>
+              💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行
+            </div>
+            <button
+              class="action-btn"
+              style="width: 100%; margin-top: 10px"
+              onclick="sendMessage()"
+              data-translate
+            >
+              發送訊息
+            </button>
+          </div>
+        </div>
+
+        <div id="section-report" class="section">
+          <h2 data-translate>➕ 大量回報新詞彙</h2>
+          <label data-translate>回報類型：</label>
+          <select id="reportType">
+            <option value="missing" data-translate>沒有的用語</option>
+            <option value="wrong" data-translate>錯誤的用語</option>
+          </select>
+          <div id="report-container">
+            <div class="report-row">
+              <input
+                type="text"
+                data-translate
+                placeholder="中國用語 (例: 視頻)"
+                class="word-a"
+              />
+              <input
+                type="text"
+                data-translate
+                placeholder="台灣用語 (例: 影片)"
+                class="word-b"
+              />
+            </div>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 10px">
+            <button
+              class="action-btn btn-add"
+              onclick="addReportRow()"
+              data-translate
+            >
+              + 新增一列
+            </button>
+            <button class="action-btn" onclick="submitReport()" data-translate>
+              📥 送出回報
+            </button>
+          </div>
+        </div>
+
+        <div id="section-feedback" class="section">
+          <h2 data-translate>💡 意見回饋</h2>
+          <p data-translate style="margin-bottom: 15px; color: #dcddde">
+            有任何功能建議或發現系統錯誤嗎？請在下方留言告訴我們！
+          </p>
+          <div style="flex: 1; display: flex; flex-direction: column">
+            <!-- 這個輸入框不綁定 Enter 事件，預設支援 Shift+Enter 換行 -->
+            <textarea
+              id="feedbackInput"
+              style="flex: 1; margin-bottom: 20px"
+              data-translate
+              placeholder="請輸入您的意見回饋..."
+            ></textarea>
+            <button
+              class="action-btn"
+              style="
+                padding: 15px;
+                font-size: 16px;
+                width: 100%;
+                font-weight: bold;
+              "
+              onclick="submitFeedback()"
+              data-translate
+            >
+              📤 送出回饋
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebarOverlay");
+        sidebar.classList.toggle("open");
+        overlay.classList.toggle("active");
+      }
+
+      let currentLang = "zh-TW";
+      const tw2cn = OpenCC.Converter({ from: "tw", to: "cn" });
+      const cn2tw = OpenCC.Converter({ from: "cn", to: "tw" });
+
+      function convertFont(text) {
+        if (!text) return text;
+        return currentLang === "zh-CN" ? tw2cn(text) : cn2tw(text);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        cacheOriginalText();
+        initLanguage();
+      });
+
+      function cacheOriginalText() {
+        document.querySelectorAll("[data-translate]").forEach((el) => {
+          if (
+            (el.tagName === "INPUT" || el.tagName === "TEXTAREA") &&
+            el.placeholder &&
+            !el.hasAttribute("data-original-placeholder")
+          ) {
+            el.setAttribute("data-original-placeholder", el.placeholder);
+          } else if (
+            el.innerText &&
+            !el.hasAttribute("data-original-text") &&
+            el.children.length === 0
+          ) {
+            el.setAttribute("data-original-text", el.innerText);
+          }
+        });
+      }
+
+      function initLanguage() {
+        const sysLang = navigator.language || navigator.userLanguage;
+        if (
+          sysLang.toLowerCase().includes("cn") ||
+          sysLang.toLowerCase().includes("hans")
+        ) {
+          currentLang = "zh-CN";
         }
+        applyLanguage();
+      }
 
-        let currentLang = 'zh-TW';
-        const tw2cn = OpenCC.Converter({ from: 'tw', to: 'cn' });
-        const cn2tw = OpenCC.Converter({ from: 'cn', to: 'tw' });
+      function toggleLanguage() {
+        currentLang = currentLang === "zh-TW" ? "zh-CN" : "zh-TW";
+        applyLanguage();
+      }
 
-        function convertFont(text) {
-            if (!text) return text;
-            return currentLang === 'zh-CN' ? tw2cn(text) : cn2tw(text);
-        }
+      function applyLanguage() {
+        document.documentElement.lang = currentLang;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            cacheOriginalText();
-            initLanguage();
+        document.querySelectorAll(".lang-btn").forEach((btn) => {
+          btn.innerText =
+            currentLang === "zh-TW" ? "切換為簡體中文" : "切换为繁体中文";
         });
 
-        function cacheOriginalText() {
-            document.querySelectorAll('[data-translate]').forEach(el => {
-                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.placeholder && !el.hasAttribute('data-original-placeholder')) {
-                    el.setAttribute('data-original-placeholder', el.placeholder);
-                } else if (el.innerText && !el.hasAttribute('data-original-text') && el.children.length === 0) {
-                    el.setAttribute('data-original-text', el.innerText);
-                }
-            });
+        cacheOriginalText();
+        document.querySelectorAll("[data-translate]").forEach((el) => {
+          if (
+            (el.tagName === "INPUT" || el.tagName === "TEXTAREA") &&
+            el.hasAttribute("data-original-placeholder")
+          ) {
+            el.placeholder = convertFont(
+              el.getAttribute("data-original-placeholder"),
+            );
+          } else if (
+            el.hasAttribute("data-original-text") &&
+            el.children.length === 0
+          ) {
+            el.innerText = convertFont(el.getAttribute("data-original-text"));
+          }
+        });
+
+        document.querySelectorAll(".message").forEach((msgDiv) => {
+          if (msgDiv.hasAttribute("data-orig-text"))
+            renderSingleMessage(msgDiv);
+          else if (msgDiv.hasAttribute("data-sys-text"))
+            msgDiv.innerText = convertFont(
+              msgDiv.getAttribute("data-sys-text"),
+            );
+        });
+
+        if (document.getElementById("trans-input").value.trim()) {
+          executeArticleTranslation();
         }
+      }
 
-        function initLanguage() {
-            const sysLang = navigator.language || navigator.userLanguage;
-            if (sysLang.toLowerCase().includes('cn') || sysLang.toLowerCase().includes('hans')) {
-                currentLang = 'zh-CN';
-            }
-            applyLanguage();
+      function switchTab(tabId) {
+        document
+          .querySelectorAll(".section")
+          .forEach((sec) => sec.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        document.getElementById("section-" + tabId).classList.add("active");
+        event.currentTarget.classList.add("active");
+
+        if (window.innerWidth <= 768) {
+          toggleSidebar();
         }
+      }
 
-        function toggleLanguage() {
-            currentLang = currentLang === 'zh-TW' ? 'zh-CN' : 'zh-TW';
-            applyLanguage();
+      function handleKeydown(e, submitCallback) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          if (e.isComposing || e.keyCode === 229) return;
+          e.preventDefault();
+          submitCallback();
         }
+      }
 
-        function applyLanguage() {
-            document.documentElement.lang = currentLang;
-            
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.innerText = currentLang === 'zh-TW' ? "切換為簡體中文" : "切换为繁体中文";
-            });
+      let dictionary = {};
+      fetch("/dict.json")
+        .then((res) => res.json())
+        .then((data) => {
+          dictionary = data;
+          renderDictTable(); // 資料載入完成後渲染表格
+        })
+        .catch((err) => console.error("無法載入字典檔", err));
 
-            cacheOriginalText();
-            document.querySelectorAll('[data-translate]').forEach(el => {
-                if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.hasAttribute('data-original-placeholder')) {
-                    el.placeholder = convertFont(el.getAttribute('data-original-placeholder'));
-                } else if (el.hasAttribute('data-original-text') && el.children.length === 0) {
-                    el.innerText = convertFont(el.getAttribute('data-original-text'));
-                }
-            });
+      function translateText(text) {
+        if (!text || Object.keys(dictionary).length === 0) return text;
+        return translateDirectional(text, currentLang === "zh-TW");
+      }
 
-            document.querySelectorAll('.message').forEach(msgDiv => {
-                if (msgDiv.hasAttribute('data-orig-text')) renderSingleMessage(msgDiv);
-                else if (msgDiv.hasAttribute('data-sys-text')) msgDiv.innerText = convertFont(msgDiv.getAttribute('data-sys-text'));
-            });
-
-            if (document.getElementById('trans-input').value.trim()) {
-                executeArticleTranslation();
-            }
+      function translateDirectional(text, toTaiwan) {
+        if (!text || Object.keys(dictionary).length === 0) return text;
+        if (toTaiwan) {
+          const keys = Object.keys(dictionary).sort(
+            (a, b) => b.length - a.length,
+          );
+          if (keys.length === 0) return text;
+          const regex = new RegExp(keys.join("|"), "g");
+          return text.replace(regex, (matched) => dictionary[matched]);
+        } else {
+          const reverseDict = {};
+          Object.keys(dictionary).forEach((key) => {
+            if (dictionary[key]) reverseDict[dictionary[key]] = key;
+          });
+          const values = Object.keys(reverseDict).sort(
+            (a, b) => b.length - a.length,
+          );
+          if (values.length === 0) return text;
+          const regex = new RegExp(values.join("|"), "g");
+          return text.replace(regex, (matched) => reverseDict[matched]);
         }
+      }
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('section-' + tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+      function executeArticleTranslation() {
+        const text = document.getElementById("trans-input").value.trim();
+        if (!text) return;
+        const twText = translateDirectional(text, true);
+        const cnText = translateDirectional(text, false);
+        document.getElementById("trans-output-tw").innerText =
+          convertFont(twText);
+        document.getElementById("trans-output-cn").innerText =
+          convertFont(cnText);
+      }
 
-            if (window.innerWidth <= 768) {
-                toggleSidebar();
-            }
-        }
+      const transInput = document.getElementById("trans-input");
+      transInput.addEventListener("keydown", (e) =>
+        handleKeydown(e, executeArticleTranslation),
+      );
 
-        function handleKeydown(e, submitCallback) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                if(e.isComposing || e.keyCode === 229) return;
-                e.preventDefault();
-                submitCallback();
-            }
-        }
-
-        let dictionary = {};
-        fetch('/dict.json')
-            .then(res => res.json())
-            .then(data => { dictionary = data; })
-            .catch(err => console.error('無法載入字典檔', err));
-
-        function translateText(text) {
-            if (!text || Object.keys(dictionary).length === 0) return text;
-            return translateDirectional(text, currentLang === 'zh-TW');
-        }
-
-        function translateDirectional(text, toTaiwan) {
-            if (!text || Object.keys(dictionary).length === 0) return text;
-            if (toTaiwan) {
-                const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
-                if (keys.length === 0) return text;
-                const regex = new RegExp(keys.join('|'), 'g');
-                return text.replace(regex, (matched) => dictionary[matched]);
-            } else {
-                const reverseDict = {};
-                Object.keys(dictionary).forEach(key => { if (dictionary[key]) reverseDict[dictionary[key]] = key; });
-                const values = Object.keys(reverseDict).sort((a, b) => b.length - a.length);
-                if (values.length === 0) return text;
-                const regex = new RegExp(values.join('|'), 'g');
-                return text.replace(regex, (matched) => reverseDict[matched]);
-            }
-        }
-
-        function executeArticleTranslation() {
-            const text = document.getElementById('trans-input').value.trim();
-            if(!text) return;
-            const twText = translateDirectional(text, true);
-            const cnText = translateDirectional(text, false);
-            document.getElementById('trans-output-tw').innerText = convertFont(twText);
-            document.getElementById('trans-output-cn').innerText = convertFont(cnText);
-        }
-
-        const transInput = document.getElementById('trans-input');
-        transInput.addEventListener('keydown', (e) => handleKeydown(e, executeArticleTranslation));
-
-        function addReportRow() {
-            const container = document.getElementById('report-container');
-            const row = document.createElement('div');
-            row.className = 'report-row';
-            row.innerHTML = `
+      function addReportRow() {
+        const container = document.getElementById("report-container");
+        const row = document.createElement("div");
+        row.className = "report-row";
+        row.innerHTML = `
                 <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
                 <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
                 <button class="btn-delete" onclick="removeReportRow(this)">✖</button>
             `;
-            container.appendChild(row);
-            applyLanguage();
+        container.appendChild(row);
+        applyLanguage();
+      }
+
+      function removeReportRow(btn) {
+        btn.closest(".report-row").remove();
+      }
+
+      async function submitReport() {
+        const type = document.getElementById("reportType").value;
+        const rows = document.querySelectorAll(".report-row");
+        let successCount = 0;
+        let totalToSubmit = 0;
+
+        for (let row of rows) {
+          const cnTerm = row.querySelector(".word-a").value.trim();
+          const twTerm = row.querySelector(".word-b").value.trim();
+          if (cnTerm && twTerm) {
+            totalToSubmit++;
+            try {
+              const res = await fetch("/api/report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type, cnTerm, twTerm }),
+              });
+              const data = await res.json();
+              if (data.success) successCount++;
+            } catch (err) {
+              console.error("回報失敗:", err);
+            }
+          }
         }
-
-        function removeReportRow(btn) { btn.closest('.report-row').remove(); }
-
-        async function submitReport() {
-            const type = document.getElementById('reportType').value;
-            const rows = document.querySelectorAll('.report-row');
-            let successCount = 0;
-            let totalToSubmit = 0;
-
-            for (let row of rows) {
-                const cnTerm = row.querySelector('.word-a').value.trim();
-                const twTerm = row.querySelector('.word-b').value.trim();
-                if (cnTerm && twTerm) {
-                    totalToSubmit++;
-                    try {
-                        const res = await fetch('/api/report', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ type, cnTerm, twTerm })
-                        });
-                        const data = await res.json();
-                        if (data.success) successCount++;
-                    } catch (err) { console.error('回報失敗:', err); }
-                }
-            }
-            if (totalToSubmit === 0) {
-                alert(convertFont('請至少完整填寫一組用語！'));
-                return;
-            }
-            if (successCount > 0) {
-                alert(convertFont(`成功發送 ${successCount} 組用語回報至機器人審核！`));
-                document.getElementById('report-container').innerHTML = `
+        if (totalToSubmit === 0) {
+          alert(convertFont("請至少完整填寫一組用語！"));
+          return;
+        }
+        if (successCount > 0) {
+          alert(
+            convertFont(`成功發送 ${successCount} 組用語回報至機器人審核！`),
+          );
+          document.getElementById("report-container").innerHTML = `
                     <div class="report-row">
                         <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
                         <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
                     </div>`;
-                applyLanguage();
-            } else {
-                alert(convertFont('回報失敗，請檢查連線狀態。'));
-            }
+          applyLanguage();
+        } else {
+          alert(convertFont("回報失敗，請檢查連線狀態。"));
+        }
+      }
+
+      async function submitFeedback() {
+        const input = document.getElementById("feedbackInput");
+        const content = input.value.trim();
+        if (!content) {
+          alert(convertFont("請輸入您的意見回饋內容！"));
+          return;
+        }
+        try {
+          const res = await fetch("/api/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert(convertFont("感謝您的回饋！我們已經收到您的建議。"));
+            input.value = "";
+          } else {
+            alert(convertFont("送出失敗，請稍後再試。"));
+          }
+        } catch (err) {
+          console.error("意見回饋發送失敗:", err);
+          alert(convertFont("連線錯誤，請檢查網路狀態。"));
+        }
+      }
+
+      let socket;
+      let currentRoom = null;
+      let myId = "User_" + Math.floor(Math.random() * 10000);
+
+      function initChat() {
+        socket = io();
+        socket.on("receiveMessage", (data) => {
+          const isSelf = data.id === myId;
+          addMessageToChat(data.id, data.text, isSelf);
+        });
+        socket.on("sysMessage", (msg) => {
+          addSysMessage(msg);
+        });
+        socket.on("roomCreated", (data) => {
+          currentRoom = data.room;
+          const url = new URL(window.location.href);
+          url.searchParams.set("room", currentRoom);
+          document.getElementById("roomLink").innerText = url.href;
+          document.getElementById("room-link-container").style.display =
+            "block";
+          document.getElementById("createRoomBtn").style.display = "none";
+        });
+        socket.on("roomError", (msg) => {
+          alert(convertFont(msg));
+          window.location.href = window.location.pathname;
+        });
+      }
+
+      function createRoom() {
+        if (!socket) initChat();
+        socket.emit("createRoom", { id: myId });
+      }
+
+      function joinExistingRoom(roomId) {
+        if (!socket) initChat();
+        currentRoom = roomId;
+        socket.emit("joinRoom", { room: currentRoom, id: myId });
+        document
+          .querySelectorAll(".section")
+          .forEach((sec) => sec.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-btn")
+          .forEach((btn) => btn.classList.remove("active"));
+        document.getElementById("section-chat").classList.add("active");
+        document.querySelectorAll(".tab-btn")[2].classList.add("active");
+        document.getElementById("createRoomBtn").style.display = "none";
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("chatInput");
+        const text = input.value.trim();
+        if (text && currentRoom) {
+          socket.emit("sendMessage", {
+            room: currentRoom,
+            text: text,
+            id: myId,
+          });
+          input.value = "";
+        } else if (!currentRoom) {
+          alert(convertFont("請先建立或加入一個聊天室！"));
+        }
+      }
+
+      const chatInput = document.getElementById("chatInput");
+      chatInput.addEventListener("keydown", (e) =>
+        handleKeydown(e, sendMessage),
+      );
+
+      function addMessageToChat(id, originalText, isSelf) {
+        const container = document.getElementById("chatMessages");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message ${isSelf ? "msg-self" : "msg-other"}`;
+        msgDiv.setAttribute("data-sender-id", id);
+        msgDiv.setAttribute("data-orig-text", originalText);
+
+        renderSingleMessage(msgDiv);
+        container.appendChild(msgDiv);
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight;
+        }, 50);
+      }
+
+      function renderSingleMessage(msgDiv) {
+        const id = msgDiv.getAttribute("data-sender-id");
+        const originalText = msgDiv.getAttribute("data-orig-text");
+        const displayText = translateText(originalText);
+
+        // 補回您原本完整的 hover/title 與 cursor 判斷
+        if (originalText !== displayText) {
+          const titleText = `原文：${originalText}`;
+          msgDiv.setAttribute("data-original-title", titleText);
+          msgDiv.title = convertFont(titleText);
+          msgDiv.style.cursor = "help";
+        } else {
+          msgDiv.removeAttribute("title");
+          msgDiv.removeAttribute("data-original-title");
+          msgDiv.style.cursor = "default";
         }
 
-        async function submitFeedback() {
-            const input = document.getElementById('feedbackInput');
-            const content = input.value.trim();
-            if (!content) {
-                alert(convertFont('請輸入您的意見回饋內容！'));
-                return;
-            }
-            try {
-                const res = await fetch('/api/feedback', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    alert(convertFont('感謝您的回饋！我們已經收到您的建議。'));
-                    input.value = '';
-                } else {
-                    alert(convertFont('送出失敗，請稍後再試。'));
-                }
-            } catch (err) {
-                console.error('意見回饋發送失敗:', err);
-                alert(convertFont('連線錯誤，請檢查網路狀態。'));
-            }
+        const headerColor = msgDiv.classList.contains("msg-self")
+          ? "#c7d0f8"
+          : "#8e9297";
+        msgDiv.innerHTML = `<div style="font-size: 12px; color: ${headerColor}; margin-bottom: 4px;">${id}</div>${convertFont(displayText).replace(/\n/g, "<br>")}`;
+      }
+
+      function addSysMessage(text) {
+        const container = document.getElementById("chatMessages");
+        const msgDiv = document.createElement("div");
+        msgDiv.className = `message msg-sys`;
+        msgDiv.setAttribute("data-sys-text", text);
+        msgDiv.innerText = convertFont(text);
+        container.appendChild(msgDiv);
+        setTimeout(() => {
+          container.scrollTop = container.scrollHeight;
+        }, 50);
+      }
+
+      function copyLink() {
+        const link = document.getElementById("roomLink").innerText;
+        navigator.clipboard
+          .writeText(link)
+          .then(() => alert(convertFont("已複製邀請連結！")));
+      }
+
+      // ====== 新增：字典渲染與搜尋功能 ======
+      function renderDictTable(searchTerm = "") {
+        const tbody = document.getElementById("dictTableBody");
+        const countDiv = document.getElementById("dictCount");
+        if (!tbody || !countDiv) return;
+
+        tbody.innerHTML = "";
+        let count = 0;
+
+        for (const [cn, tw] of Object.entries(dictionary)) {
+          // 如果有輸入搜尋字詞，且中台用語都不包含該字詞，則跳過
+          if (
+            searchTerm &&
+            !cn.includes(searchTerm) &&
+            !tw.includes(searchTerm)
+          )
+            continue;
+
+          count++;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b;">${cn}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b;">${tw}</td>
+        `;
+          tbody.appendChild(tr);
         }
+        countDiv.innerText = `目前共收錄 ${Object.keys(dictionary).length} 筆詞彙 (顯示 ${count} 筆)`;
+      }
 
-        let socket;
-        let currentRoom = null;
-        let myId = "User_" + Math.floor(Math.random() * 10000); 
+      function filterDict() {
+        const term = document.getElementById("dictSearch").value.trim();
+        renderDictTable(term);
+      }
 
-        function initChat() {
-            socket = io();
-            socket.on('receiveMessage', (data) => {
-                const isSelf = data.id === myId;
-                addMessageToChat(data.id, data.text, isSelf);
-            });
-            socket.on('sysMessage', (msg) => { addSysMessage(msg); });
-            socket.on('roomCreated', (data) => {
-                currentRoom = data.room;
-                const url = new URL(window.location.href);
-                url.searchParams.set('room', currentRoom);
-                document.getElementById('roomLink').innerText = url.href;
-                document.getElementById('room-link-container').style.display = 'block';
-                document.getElementById('createRoomBtn').style.display = 'none';
-            });
-            socket.on('roomError', (msg) => {
-                alert(convertFont(msg));
-                window.location.href = window.location.pathname;
-            });
+      window.onload = function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get("room");
+        if (roomId) {
+          joinExistingRoom(roomId);
         }
-
-        function createRoom() {
-            if (!socket) initChat();
-            socket.emit('createRoom', { id: myId });
-        }
-
-        function joinExistingRoom(roomId) {
-            if (!socket) initChat();
-            currentRoom = roomId;
-            socket.emit('joinRoom', { room: currentRoom, id: myId });
-            document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('section-chat').classList.add('active');
-            document.querySelectorAll('.tab-btn')[2].classList.add('active');
-            document.getElementById('createRoomBtn').style.display = 'none';
-        }
-
-        function sendMessage() {
-            const input = document.getElementById('chatInput');
-            const text = input.value.trim();
-            if (text && currentRoom) {
-                socket.emit('sendMessage', { room: currentRoom, text: text, id: myId });
-                input.value = '';
-            } else if (!currentRoom) {
-                alert(convertFont('請先建立或加入一個聊天室！'));
-            }
-        }
-
-        const chatInput = document.getElementById('chatInput');
-        chatInput.addEventListener('keydown', (e) => handleKeydown(e, sendMessage));
-
-        function addMessageToChat(id, originalText, isSelf) {
-            const container = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message ${isSelf ? 'msg-self' : 'msg-other'}`;
-            msgDiv.setAttribute('data-sender-id', id);
-            msgDiv.setAttribute('data-orig-text', originalText);
-            
-            renderSingleMessage(msgDiv);
-            container.appendChild(msgDiv);
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
-        }
-
-        function renderSingleMessage(msgDiv) {
-            const id = msgDiv.getAttribute('data-sender-id');
-            const originalText = msgDiv.getAttribute('data-orig-text');
-            const displayText = translateText(originalText);
-
-            // 補回您原本完整的 hover/title 與 cursor 判斷
-            if (originalText !== displayText) {
-                const titleText = `原文：${originalText}`;
-                msgDiv.setAttribute('data-original-title', titleText);
-                msgDiv.title = convertFont(titleText);
-                msgDiv.style.cursor = 'help';
-            } else {
-                msgDiv.removeAttribute('title');
-                msgDiv.removeAttribute('data-original-title');
-                msgDiv.style.cursor = 'default';
-            }
-            
-            const headerColor = msgDiv.classList.contains('msg-self') ? '#c7d0f8' : '#8e9297';
-            msgDiv.innerHTML = `<div style="font-size: 12px; color: ${headerColor}; margin-bottom: 4px;">${id}</div>${convertFont(displayText).replace(/\n/g, '<br>')}`;
-        }
-
-        function addSysMessage(text) {
-            const container = document.getElementById('chatMessages');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `message msg-sys`;
-            msgDiv.setAttribute('data-sys-text', text);
-            msgDiv.innerText = convertFont(text);
-            container.appendChild(msgDiv);
-            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
-        }
-
-        function copyLink() {
-            const link = document.getElementById('roomLink').innerText;
-            navigator.clipboard.writeText(link).then(() => alert(convertFont('已複製邀請連結！')));
-        }
-
-        window.onload = function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomId = urlParams.get('room');
-            if (roomId) { joinExistingRoom(roomId); }
-        };
+      };
     </script>
-</body>
+  </body>
 </html>

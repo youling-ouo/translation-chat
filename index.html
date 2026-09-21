@@ -61,6 +61,9 @@
         cursor: pointer;
         transition: 0.2s;
         font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
       .lang-btn:hover {
         background: #40444b;
@@ -144,7 +147,6 @@
         margin-top: 0;
       }
 
-      /* 輸入與輸出區域 (字體設定為 16px 防止 iOS 縮放) */
       textarea,
       input,
       select {
@@ -180,7 +182,6 @@
         margin-top: 5px;
       }
 
-      /* 雙欄顯示容器 */
       .split-container {
         display: flex;
         gap: 20px;
@@ -197,7 +198,6 @@
         margin-bottom: 0;
       }
 
-      /* 聊天室專用 */
       #chatMessages {
         flex: 1;
         background-color: var(--panel-bg);
@@ -244,7 +244,6 @@
         border: 1px dashed #5865f2;
       }
 
-      /* 回報功能與通用按鈕 */
       .report-row {
         display: flex;
         gap: 10px;
@@ -254,6 +253,8 @@
       select {
         margin-bottom: 20px;
       }
+
+      /* 修正：為 action-btn 強制加上 Flexbox 置中機制，確保文字絕不偏下 */
       .action-btn {
         background-color: var(--primary);
         color: white;
@@ -263,9 +264,18 @@
         cursor: pointer;
         font-size: 15px;
         transition: 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        box-sizing: border-box;
       }
       .action-btn:hover {
         background-color: var(--primary-hover);
+      }
+      .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       .btn-add {
         background-color: #3ba55c;
@@ -274,7 +284,6 @@
         background-color: #2d7d46;
       }
 
-      /* 補回原本的 hover 動畫 */
       .btn-delete {
         background-color: #ed4245;
         color: white;
@@ -284,7 +293,7 @@
         height: 30px;
         cursor: pointer;
         font-weight: bold;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         transition: 0.2s;
@@ -293,7 +302,6 @@
         background-color: #c9383b;
       }
 
-      /* 網站介紹專用 */
       .intro-box {
         background: var(--panel-bg);
         padding: 30px;
@@ -316,7 +324,6 @@
         border-radius: 4px;
       }
 
-      /* 手機版 RWD 設定 */
       @media (max-width: 768px) {
         body {
           flex-direction: column;
@@ -516,12 +523,11 @@
                 </tr>
               </thead>
               <tbody id="dictTableBody">
-                <!-- 字典內容會由 JS 渲染在這裡 -->
+                <!-- 字典內容由 JS 動態繪製 -->
               </tbody>
             </table>
           </div>
 
-          <!-- 分頁控制按鈕 -->
           <div
             id="paginationControls"
             style="
@@ -704,7 +710,6 @@
             有任何功能建議或發現系統錯誤嗎？請在下方留言告訴我們！
           </p>
           <div style="flex: 1; display: flex; flex-direction: column">
-            <!-- 這個輸入框不綁定 Enter 事件，預設支援 Shift+Enter 換行 -->
             <textarea
               id="feedbackInput"
               style="flex: 1; margin-bottom: 20px"
@@ -738,12 +743,17 @@
       }
 
       let currentLang = "zh-TW";
-      const tw2cn = OpenCC.Converter({ from: "tw", to: "cn" });
-      const cn2tw = OpenCC.Converter({ from: "cn", to: "tw" });
+      // 使用 twp (含用語/異體字轉碼) 讓「台/臺」等字詞轉碼更完整
+      const tw2cn = OpenCC.Converter({ from: "twp", to: "cn" });
+      const cn2tw = OpenCC.Converter({ from: "cn", to: "twp" });
 
       function convertFont(text) {
         if (!text) return text;
-        return currentLang === "zh-CN" ? tw2cn(text) : cn2tw(text);
+        try {
+          return currentLang === "zh-CN" ? tw2cn(text) : cn2tw(text);
+        } catch (e) {
+          return text;
+        }
       }
 
       document.addEventListener("DOMContentLoaded", () => {
@@ -751,6 +761,7 @@
         initLanguage();
       });
 
+      // 快取原始的繁體中文，避免多次切換後丢失原文
       function cacheOriginalText() {
         document.querySelectorAll("[data-translate]").forEach((el) => {
           if (
@@ -758,19 +769,19 @@
             el.placeholder &&
             !el.hasAttribute("data-original-placeholder")
           ) {
-            el.setAttribute("data-original-placeholder", el.placeholder);
+            el.setAttribute("data-original-placeholder", el.placeholder.trim());
           } else if (
-            el.innerText &&
             !el.hasAttribute("data-original-text") &&
             el.children.length === 0
           ) {
-            el.setAttribute("data-original-text", el.innerText);
+            const txt = el.innerText || el.textContent;
+            if (txt) el.setAttribute("data-original-text", txt.trim());
           }
         });
       }
 
       function initLanguage() {
-        const sysLang = navigator.language || navigator.userLanguage;
+        const sysLang = navigator.language || navigator.userLanguage || "";
         if (
           sysLang.toLowerCase().includes("cn") ||
           sysLang.toLowerCase().includes("hans")
@@ -793,7 +804,7 @@
             currentLang === "zh-TW" ? "切換為簡體中文" : "切换为繁体中文";
         });
 
-        cacheOriginalText();
+        // 轉換所有靜態 DOM
         document.querySelectorAll("[data-translate]").forEach((el) => {
           if (
             (el.tagName === "INPUT" || el.tagName === "TEXTAREA") &&
@@ -810,6 +821,15 @@
           }
         });
 
+        // 關鍵：語系切換時重新繪製字典表格與統計文字
+        if (Object.keys(dictionary).length > 0) {
+          const searchVal = document.getElementById("dictSearch")
+            ? document.getElementById("dictSearch").value.trim()
+            : "";
+          renderDictTable(searchVal);
+        }
+
+        // 轉換聊天室歷史訊息
         document.querySelectorAll(".message").forEach((msgDiv) => {
           if (msgDiv.hasAttribute("data-orig-text"))
             renderSingleMessage(msgDiv);
@@ -819,7 +839,10 @@
             );
         });
 
-        if (document.getElementById("trans-input").value.trim()) {
+        if (
+          document.getElementById("trans-input") &&
+          document.getElementById("trans-input").value.trim()
+        ) {
           executeArticleTranslation();
         }
       }
@@ -852,7 +875,7 @@
         .then((res) => res.json())
         .then((data) => {
           dictionary = data;
-          renderDictTable(); // 資料載入完成後渲染表格
+          renderDictTable();
         })
         .catch((err) => console.error("無法載入字典檔", err));
 
@@ -897,12 +920,10 @@
 
       const transInput = document.getElementById("trans-input");
       transInput.addEventListener("keydown", (e) => {
-        // 判斷是否為手機螢幕或行動裝置
         const isMobile =
           window.innerWidth <= 768 ||
           /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-        if (isMobile) return; // 手機端直接跳過，保留預設 Enter 換行功能
-
+        if (isMobile) return;
         handleKeydown(e, executeArticleTranslation);
       });
 
@@ -1037,7 +1058,6 @@
           .forEach((btn) => btn.classList.remove("active"));
         document.getElementById("section-chat").classList.add("active");
 
-        // ✅ 修正為直接精準選取聊天室按鈕，避免未來新增頁籤時再次影響索引
         const chatBtn = document.querySelector(".tab-btn[onclick*='chat']");
         if (chatBtn) chatBtn.classList.add("active");
 
@@ -1083,7 +1103,6 @@
         const originalText = msgDiv.getAttribute("data-orig-text");
         const displayText = translateText(originalText);
 
-        // 補回您原本完整的 hover/title 與 cursor 判斷
         if (originalText !== displayText) {
           const titleText = `原文：${originalText}`;
           msgDiv.setAttribute("data-original-title", titleText);
@@ -1120,9 +1139,9 @@
           .then(() => alert(convertFont("已複製邀請連結！")));
       }
 
-      // ====== 字典渲染、翻頁與搜尋功能 ======
+      // ====== 字典渲染、翻頁與語系轉換 ======
       let currentPage = 1;
-      const pageSize = 15; // 每頁顯示 15 筆
+      const pageSize = 15;
 
       function renderDictTable(searchTerm = "") {
         const tbody = document.getElementById("dictTableBody");
@@ -1144,43 +1163,42 @@
         const totalItems = filteredEntries.length;
         const totalPages = Math.ceil(totalItems / pageSize) || 1;
 
-        // 邊界檢查
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1) currentPage = 1;
 
-        // 2. 切片當前頁面的資料
         const startIndex = (currentPage - 1) * pageSize;
         const pageEntries = filteredEntries.slice(
           startIndex,
           startIndex + pageSize,
         );
 
-        // 3. 渲染表格（設定文字置中）
+        // 2. 渲染表格（重點：加入 convertFont 轉換單詞語系）
         tbody.innerHTML = "";
         pageEntries.forEach(([cn, tw]) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${cn}</td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${tw}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${convertFont(cn)}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${convertFont(tw)}</td>
           `;
           tbody.appendChild(tr);
         });
 
-        // 4. 更新狀態與按鈕
+        // 3. 更新統計訊息與分頁標示（加入 convertFont）
         countDiv.innerText = convertFont(
           `目前共收錄 ${Object.keys(dictionary).length} 筆詞彙 (符合搜尋 ${totalItems} 筆)`,
         );
-        if (pageInfo)
+        if (pageInfo) {
           pageInfo.innerText = convertFont(
             `第 ${currentPage} / ${totalPages} 頁`,
           );
+        }
 
         if (btnPrev) btnPrev.disabled = currentPage <= 1;
         if (btnNext) btnNext.disabled = currentPage >= totalPages;
       }
 
       function filterDict() {
-        currentPage = 1; // 搜尋時重置回第一頁
+        currentPage = 1;
         const term = document.getElementById("dictSearch").value.trim();
         renderDictTable(term);
       }

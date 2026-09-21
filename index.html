@@ -969,7 +969,11 @@
           .querySelectorAll(".tab-btn")
           .forEach((btn) => btn.classList.remove("active"));
         document.getElementById("section-chat").classList.add("active");
-        document.querySelectorAll(".tab-btn")[2].classList.add("active");
+
+        // ✅ 修正為直接精準選取聊天室按鈕，避免未來新增頁籤時再次影響索引
+        const chatBtn = document.querySelector(".tab-btn[onclick*='chat']");
+        if (chatBtn) chatBtn.classList.add("active");
+
         document.getElementById("createRoomBtn").style.display = "none";
       }
 

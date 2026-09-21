@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title data-translate>兩岸用語翻譯與匿名聊天系統</title>
     <style>
         :root {
@@ -20,11 +20,29 @@
             color: var(--text-color);
             margin: 0;
             display: flex;
-            height: 100vh;
+            height: 100dvh; 
             overflow: hidden;
         }
 
-        /* 頂部語系切換列 */
+        /* 頂部行動版專用 Header */
+        .mobile-header {
+            display: none; 
+            background-color: #202225;
+            padding: 10px 15px;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* 頂部語系切換列 (桌面版) */
         .top-bar-container {
             position: absolute;
             top: 20px;
@@ -39,6 +57,7 @@
             border-radius: var(--border-radius);
             cursor: pointer;
             transition: 0.2s;
+            font-size: 14px;
         }
         .lang-btn:hover { background: #40444b; }
 
@@ -50,6 +69,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
         }
         .sidebar h2 { font-size: 18px; margin-bottom: 20px; color: #fff; text-align: center; }
         .tab-btn {
@@ -66,7 +87,22 @@
         .tab-btn:hover { background-color: #393c43; }
         .tab-btn.active { background-color: var(--primary); color: #fff; }
 
+        /* 行動版側邊欄遮罩 */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
         /* 主內容區 */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
         .main-content {
             flex: 1;
             padding: 30px 40px;
@@ -80,8 +116,8 @@
 
         h2, h3 { color: #fff; margin-top: 0; }
 
-        /* 輸入與輸出區域 */
-        textarea {
+        /* 輸入與輸出區域 (字體設定為 16px 防止 iOS 縮放) */
+        textarea, input, select {
             width: 100%;
             background-color: #40444b;
             border: none;
@@ -89,10 +125,11 @@
             padding: 15px;
             border-radius: var(--border-radius);
             resize: none;
-            font-size: 16px;
+            font-size: 16px; 
             box-sizing: border-box;
         }
-        textarea:focus { outline: 2px solid var(--primary); }
+        textarea:focus, input:focus, select:focus { outline: 2px solid var(--primary); }
+        
         .output-box {
             flex: 1;
             background-color: var(--panel-bg);
@@ -105,7 +142,7 @@
         }
         .hint { font-size: 12px; color: #8e9297; margin-top: 5px; }
 
-        /* 雙欄顯示容器 (翻譯器專用) */
+        /* 雙欄顯示容器 */
         .split-container {
             display: flex;
             gap: 20px;
@@ -116,10 +153,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 150px;
         }
-        .split-box .output-box {
-            margin-bottom: 0;
-        }
+        .split-box .output-box { margin-bottom: 0; }
 
         /* 聊天室專用 */
         #chatMessages {
@@ -140,24 +176,7 @@
 
         /* 回報功能與通用按鈕 */
         .report-row { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
-        .report-row input {
-            flex: 1;
-            padding: 12px;
-            background-color: #40444b;
-            border: none;
-            color: #fff;
-            border-radius: var(--border-radius);
-            font-size: 16px;
-        }
-        select {
-            padding: 12px;
-            background-color: #40444b;
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 16px;
-            margin-bottom: 20px;
-        }
+        select { margin-bottom: 20px; }
         .action-btn {
             background-color: var(--primary);
             color: white;
@@ -171,6 +190,8 @@
         .action-btn:hover { background-color: var(--primary-hover); }
         .btn-add { background-color: #3ba55c; }
         .btn-add:hover { background-color: #2d7d46; }
+        
+        /* 補回原本的 hover 動畫 */
         .btn-delete {
             background-color: #ed4245;
             color: white;
@@ -188,21 +209,35 @@
         .btn-delete:hover { background-color: #c9383b; }
 
         /* 網站介紹專用 */
-        .intro-box {
-            background: var(--panel-bg);
-            padding: 30px;
-            border-radius: var(--border-radius);
-            line-height: 1.8;
-            font-size: 16px;
-        }
+        .intro-box { background: var(--panel-bg); padding: 30px; border-radius: var(--border-radius); line-height: 1.8; font-size: 16px; }
         .intro-box ul { margin-top: 10px; padding-left: 20px; }
         .intro-box li { margin-bottom: 10px; }
-        .warning-box {
-            background-color: rgba(234, 153, 51, 0.1);
-            border-left: 4px solid #ea9933;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 4px;
+        .warning-box { background-color: rgba(234, 153, 51, 0.1); border-left: 4px solid #ea9933; padding: 15px; margin-top: 20px; border-radius: 4px; }
+
+        /* 手機版 RWD 設定 */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .mobile-header { display: flex; }
+            .top-bar-container { display: none; } 
+            
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100dvh;
+                transform: translateX(-100%);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+                padding-top: 60px;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.active { display: block; }
+            .main-content { padding: 15px 20px; }
+            .intro-box { padding: 20px; }
+            .split-container { flex-direction: column; gap: 15px; }
+            .split-box { min-height: 120px; }
+            .split-box .output-box { padding: 15px; }
+            .message { max-width: 90%; }
+            #roomLink { display: block; margin-top: 5px; word-break: break-all; }
         }
     </style>
     <script src="/socket.io/socket.io.js"></script>
@@ -210,11 +245,13 @@
 </head>
 <body>
 
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
     <div class="top-bar-container">
-        <button class="lang-btn" onclick="toggleLanguage()" id="langToggleBtn">切換為簡體中文</button>
+        <button class="lang-btn" onclick="toggleLanguage()">切換為簡體中文</button>
     </div>
 
-    <div class="sidebar">
+    <div class="sidebar" id="sidebar">
         <h2 data-translate>系統介面</h2>
         <button class="tab-btn active" onclick="switchTab('intro')" data-translate>📖 網站介紹</button>
         <button class="tab-btn" onclick="switchTab('translator')" data-translate>📝 文章翻譯器</button>
@@ -223,105 +260,108 @@
         <button class="tab-btn" onclick="switchTab('feedback')" data-translate>💡 意見回饋</button>
     </div>
 
-    <div class="main-content">
-        
-        <!-- 區塊0：網站介紹 -->
-        <div id="section-intro" class="section active">
-            <h2 data-translate>📖 網站使用說明</h2>
-            <div class="intro-box">
-                <p><strong data-translate>📌 核心功能：</strong></p>
-                <ul>
-                    <li data-translate><strong>文章翻譯器：</strong>貼上長篇文章，系統會自動根據你選擇的語系，完美替換兩岸習慣用語。</li>
-                    <li data-translate><strong>匿名聊天室：</strong>點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。</li>
-                    <li data-translate><strong>詞彙回報：</strong>遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！</li>
-                    <li data-translate><strong>意見回饋：</strong>有任何新點子或發現 Bug，都可以透過回饋信箱告訴我們！</li>
-                </ul>
-                <div class="warning-box">
-                    <strong style="color: #ea9933;" data-translate>⚠️ 溫馨提示：</strong>
-                    <span data-translate>本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。請善用 Shift+Enter 進行換行！</span>
-                </div>
-            </div>
+    <div class="main-wrapper">
+        <div class="mobile-header">
+            <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+            <button class="lang-btn" onclick="toggleLanguage()" style="margin:0;">切換為簡體中文</button>
         </div>
 
-        <!-- 區塊1：文章翻譯器 (分割雙畫面) -->
-        <div id="section-translator" class="section">
-            <h2 data-translate>📝 文章段落翻譯器</h2>
+        <div class="main-content">
             
-            <div class="split-container">
-                <!-- 台灣用語輸出 -->
-                <div class="split-box">
-                    <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇹🇼 台灣用語輸出</h3>
-                    <div class="output-box" id="trans-output-tw" data-translate>翻譯結果將顯示在此處...</div>
-                </div>
-                <!-- 中國用語輸出 -->
-                <div class="split-box">
-                    <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇨🇳 中國用語輸出</h3>
-                    <div class="output-box" id="trans-output-cn" data-translate>翻譯結果將顯示在此處...</div>
-                </div>
-            </div>
-
-            <div>
-                <textarea id="trans-input" rows="4" data-translate placeholder="請輸入需要翻譯的文章..."></textarea>
-                <div class="hint" data-translate>💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行</div>
-            </div>
-        </div>
-
-        <!-- 區塊2：匿名聊天室 -->
-        <div id="section-chat" class="section">
-            <h2 data-translate>💬 臨時匿名聊天室</h2>
-            <div style="text-align: center; margin-bottom: 15px;" id="room-controls">
-                <button class="action-btn" onclick="createRoom()" id="createRoomBtn" data-translate>建立專屬聊天室</button>
-            </div>
-            <div id="room-link-container">
-                <span data-translate>邀請連結：</span><span id="roomLink" style="font-weight: bold; color: #5865F2; user-select: all;"></span>
-                <button class="action-btn" onclick="copyLink()" style="padding: 5px 10px; font-size: 12px; margin-left: 10px;" data-translate>複製</button>
-            </div>
-            <div id="chatMessages"></div>
-            <div>
-                <textarea id="chatInput" rows="3" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯..."></textarea>
-                <div class="hint" data-translate>💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行</div>
-                <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="sendMessage()" data-translate>發送訊息</button>
-            </div>
-        </div>
-
-        <!-- 區塊3：詞彙回報功能 -->
-        <div id="section-report" class="section">
-            <h2 data-translate>➕ 大量回報新詞彙</h2>
-            <label data-translate>回報類型：</label>
-            <select id="reportType">
-                <option value="missing" data-translate>沒有的用語</option>
-                <option value="wrong" data-translate>錯誤的用語</option>
-            </select>
-            <div id="report-container">
-                <div class="report-row">
-                    <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
-                    <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
+            <div id="section-intro" class="section active">
+                <h2 data-translate>📖 網站使用說明</h2>
+                <div class="intro-box">
+                    <p><strong data-translate>📌 核心功能：</strong></p>
+                    <ul>
+                        <li data-translate><strong>文章翻譯器：</strong>貼上長篇文章，系統會自動根據你選擇的語系，完美替換兩岸習慣用語。</li>
+                        <li data-translate><strong>匿名聊天室：</strong>點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。</li>
+                        <li data-translate><strong>詞彙回報：</strong>遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！</li>
+                        <li data-translate><strong>意見回饋：</strong>有任何新點子或發現 Bug，都可以透過回饋信箱告訴我們！</li>
+                    </ul>
+                    <div class="warning-box">
+                        <strong style="color: #ea9933;" data-translate>⚠️ 溫馨提示：</strong>
+                        <span data-translate>本網站專注於兩岸標準用語轉換，不適用於方言（如閩南語、粵語等）。請善用 Shift+Enter 進行換行！</span>
+                    </div>
                 </div>
             </div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <button class="action-btn btn-add" onclick="addReportRow()" data-translate>+ 新增一列</button>
-                <button class="action-btn" onclick="submitReport()" data-translate>📥 送出回報</button>
-            </div>
-        </div>
 
-        <!-- 區塊4：意見回饋 (新功能) -->
-        <div id="section-feedback" class="section">
-            <h2 data-translate>💡 意見回饋</h2>
-            <p data-translate style="margin-bottom: 15px; color: #dcddde;">有任何功能建議或發現系統錯誤嗎？請在下方留言告訴我們！</p>
-            
-            <div style="flex: 1; display: flex; flex-direction: column;">
-                <!-- 這個輸入框不綁定 Enter 事件，預設支援 Shift+Enter 換行 -->
-                <textarea id="feedbackInput" style="flex: 1; margin-bottom: 20px;" data-translate placeholder="請輸入您的意見回饋..."></textarea>
-                <button class="action-btn" style="padding: 15px; font-size: 16px; width: 100%; font-weight: bold;" onclick="submitFeedback()" data-translate>📤 送出回饋</button>
-            </div>
-        </div>
+            <div id="section-translator" class="section">
+                <h2 data-translate>📝 文章段落翻譯器</h2>
+                
+                <div class="split-container">
+                    <div class="split-box">
+                        <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇹🇼 台灣用語輸出</h3>
+                        <div class="output-box" id="trans-output-tw" data-translate>翻譯結果將顯示在此處...</div>
+                    </div>
+                    <div class="split-box">
+                        <h3 data-translate style="font-size: 16px; margin-bottom: 10px; color: #8e9297;">🇨🇳 中國用語輸出</h3>
+                        <div class="output-box" id="trans-output-cn" data-translate>翻譯結果將顯示在此處...</div>
+                    </div>
+                </div>
 
+                <div>
+                    <textarea id="trans-input" rows="4" data-translate placeholder="請輸入需要翻譯的文章..."></textarea>
+                    <div class="hint" data-translate>💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行</div>
+                </div>
+            </div>
+
+            <div id="section-chat" class="section">
+                <h2 data-translate>💬 臨時匿名聊天室</h2>
+                <div style="text-align: center; margin-bottom: 15px;" id="room-controls">
+                    <button class="action-btn" onclick="createRoom()" id="createRoomBtn" data-translate>建立專屬聊天室</button>
+                </div>
+                <div id="room-link-container">
+                    <span data-translate>邀請連結：</span><span id="roomLink" style="font-weight: bold; color: #5865F2; user-select: all;"></span>
+                    <button class="action-btn" onclick="copyLink()" style="padding: 5px 10px; font-size: 12px; margin-left: 10px;" data-translate>複製</button>
+                </div>
+                <div id="chatMessages"></div>
+                <div>
+                    <textarea id="chatInput" rows="3" data-translate placeholder="輸入訊息，系統將自動轉換與翻譯..."></textarea>
+                    <div class="hint" data-translate>💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行</div>
+                    <button class="action-btn" style="width: 100%; margin-top: 10px;" onclick="sendMessage()" data-translate>發送訊息</button>
+                </div>
+            </div>
+
+            <div id="section-report" class="section">
+                <h2 data-translate>➕ 大量回報新詞彙</h2>
+                <label data-translate>回報類型：</label>
+                <select id="reportType">
+                    <option value="missing" data-translate>沒有的用語</option>
+                    <option value="wrong" data-translate>錯誤的用語</option>
+                </select>
+                <div id="report-container">
+                    <div class="report-row">
+                        <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
+                        <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="action-btn btn-add" onclick="addReportRow()" data-translate>+ 新增一列</button>
+                    <button class="action-btn" onclick="submitReport()" data-translate>📥 送出回報</button>
+                </div>
+            </div>
+
+            <div id="section-feedback" class="section">
+                <h2 data-translate>💡 意見回饋</h2>
+                <p data-translate style="margin-bottom: 15px; color: #dcddde;">有任何功能建議或發現系統錯誤嗎？請在下方留言告訴我們！</p>
+                <div style="flex: 1; display: flex; flex-direction: column;">
+                    <!-- 這個輸入框不綁定 Enter 事件，預設支援 Shift+Enter 換行 -->
+                    <textarea id="feedbackInput" style="flex: 1; margin-bottom: 20px;" data-translate placeholder="請輸入您的意見回饋..."></textarea>
+                    <button class="action-btn" style="padding: 15px; font-size: 16px; width: 100%; font-weight: bold;" onclick="submitFeedback()" data-translate>📤 送出回饋</button>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <script>
-        // ==========================================
-        // 1. OpenCC 繁簡轉換與語言介面邏輯
-        // ==========================================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
         let currentLang = 'zh-TW';
         const tw2cn = OpenCC.Converter({ from: 'tw', to: 'cn' });
         const cn2tw = OpenCC.Converter({ from: 'cn', to: 'tw' });
@@ -361,8 +401,10 @@
 
         function applyLanguage() {
             document.documentElement.lang = currentLang;
-            const toggleBtn = document.getElementById('langToggleBtn');
-            toggleBtn.innerText = currentLang === 'zh-TW' ? "切換為簡體中文" : "切换为繁体中文";
+            
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.innerText = currentLang === 'zh-TW' ? "切換為簡體中文" : "切换为繁体中文";
+            });
 
             cacheOriginalText();
             document.querySelectorAll('[data-translate]').forEach(el => {
@@ -378,7 +420,6 @@
                 else if (msgDiv.hasAttribute('data-sys-text')) msgDiv.innerText = convertFont(msgDiv.getAttribute('data-sys-text'));
             });
 
-            // 讓翻譯器的內容即時跟隨語系切換字體
             if (document.getElementById('trans-input').value.trim()) {
                 executeArticleTranslation();
             }
@@ -389,35 +430,33 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('section-' + tabId).classList.add('active');
             event.currentTarget.classList.add('active');
+
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
         }
 
         function handleKeydown(e, submitCallback) {
             if (e.key === 'Enter' && !e.shiftKey) {
+                if(e.isComposing || e.keyCode === 229) return;
                 e.preventDefault();
                 submitCallback();
             }
         }
 
-        // ==========================================
-        // 3. 字典載入與翻譯邏輯
-        // ==========================================
         let dictionary = {};
-        
         fetch('/dict.json')
             .then(res => res.json())
             .then(data => { dictionary = data; })
             .catch(err => console.error('無法載入字典檔', err));
 
-        // 聊天室專用的自動判斷翻譯 (跟隨 currentLang)
         function translateText(text) {
             if (!text || Object.keys(dictionary).length === 0) return text;
             return translateDirectional(text, currentLang === 'zh-TW');
         }
 
-        // 文章翻譯器專用的精確方向翻譯
         function translateDirectional(text, toTaiwan) {
             if (!text || Object.keys(dictionary).length === 0) return text;
-            
             if (toTaiwan) {
                 const keys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
                 if (keys.length === 0) return text;
@@ -433,15 +472,11 @@
             }
         }
 
-        // 執行文章雙欄翻譯
         function executeArticleTranslation() {
             const text = document.getElementById('trans-input').value.trim();
             if(!text) return;
-            
-            const twText = translateDirectional(text, true);  // 轉為台灣用語
-            const cnText = translateDirectional(text, false); // 轉為中國用語
-            
-            // 套用字體轉換 (根據目前使用者設定的語系)
+            const twText = translateDirectional(text, true);
+            const cnText = translateDirectional(text, false);
             document.getElementById('trans-output-tw').innerText = convertFont(twText);
             document.getElementById('trans-output-cn').innerText = convertFont(cnText);
         }
@@ -449,10 +484,6 @@
         const transInput = document.getElementById('trans-input');
         transInput.addEventListener('keydown', (e) => handleKeydown(e, executeArticleTranslation));
 
-
-        // ==========================================
-        // 4. 回報功能 (維持原樣)
-        // ==========================================
         function addReportRow() {
             const container = document.getElementById('report-container');
             const row = document.createElement('div');
@@ -477,7 +508,6 @@
             for (let row of rows) {
                 const cnTerm = row.querySelector('.word-a').value.trim();
                 const twTerm = row.querySelector('.word-b').value.trim();
-                
                 if (cnTerm && twTerm) {
                     totalToSubmit++;
                     try {
@@ -491,12 +521,10 @@
                     } catch (err) { console.error('回報失敗:', err); }
                 }
             }
-
             if (totalToSubmit === 0) {
                 alert(convertFont('請至少完整填寫一組用語！'));
                 return;
             }
-
             if (successCount > 0) {
                 alert(convertFont(`成功發送 ${successCount} 組用語回報至機器人審核！`));
                 document.getElementById('report-container').innerHTML = `
@@ -510,18 +538,13 @@
             }
         }
 
-        // ==========================================
-        // 5. 新增：意見回饋送出邏輯
-        // ==========================================
         async function submitFeedback() {
             const input = document.getElementById('feedbackInput');
             const content = input.value.trim();
-            
             if (!content) {
                 alert(convertFont('請輸入您的意見回饋內容！'));
                 return;
             }
-
             try {
                 const res = await fetch('/api/feedback', {
                     method: 'POST',
@@ -529,10 +552,9 @@
                     body: JSON.stringify({ content })
                 });
                 const data = await res.json();
-                
                 if (data.success) {
                     alert(convertFont('感謝您的回饋！我們已經收到您的建議。'));
-                    input.value = ''; // 清空輸入框
+                    input.value = '';
                 } else {
                     alert(convertFont('送出失敗，請稍後再試。'));
                 }
@@ -542,34 +564,25 @@
             }
         }
 
-
-        // ==========================================
-        // 6. Socket.io 聊天室邏輯 (維持原樣)
-        // ==========================================
         let socket;
         let currentRoom = null;
         let myId = "User_" + Math.floor(Math.random() * 10000); 
 
         function initChat() {
             socket = io();
-            
             socket.on('receiveMessage', (data) => {
                 const isSelf = data.id === myId;
                 addMessageToChat(data.id, data.text, isSelf);
             });
-            
             socket.on('sysMessage', (msg) => { addSysMessage(msg); });
-
             socket.on('roomCreated', (data) => {
                 currentRoom = data.room;
                 const url = new URL(window.location.href);
                 url.searchParams.set('room', currentRoom);
-                
                 document.getElementById('roomLink').innerText = url.href;
                 document.getElementById('room-link-container').style.display = 'block';
                 document.getElementById('createRoomBtn').style.display = 'none';
             });
-
             socket.on('roomError', (msg) => {
                 alert(convertFont(msg));
                 window.location.href = window.location.pathname;
@@ -585,12 +598,10 @@
             if (!socket) initChat();
             currentRoom = roomId;
             socket.emit('joinRoom', { room: currentRoom, id: myId });
-            
             document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('section-chat').classList.add('active');
             document.querySelectorAll('.tab-btn')[2].classList.add('active');
-            
             document.getElementById('createRoomBtn').style.display = 'none';
         }
 
@@ -612,14 +623,12 @@
             const container = document.getElementById('chatMessages');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message ${isSelf ? 'msg-self' : 'msg-other'}`;
-            
             msgDiv.setAttribute('data-sender-id', id);
             msgDiv.setAttribute('data-orig-text', originalText);
             
             renderSingleMessage(msgDiv);
-            
             container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
         }
 
         function renderSingleMessage(msgDiv) {
@@ -627,6 +636,7 @@
             const originalText = msgDiv.getAttribute('data-orig-text');
             const displayText = translateText(originalText);
 
+            // 補回您原本完整的 hover/title 與 cursor 判斷
             if (originalText !== displayText) {
                 const titleText = `原文：${originalText}`;
                 msgDiv.setAttribute('data-original-title', titleText);
@@ -646,12 +656,10 @@
             const container = document.getElementById('chatMessages');
             const msgDiv = document.createElement('div');
             msgDiv.className = `message msg-sys`;
-            
             msgDiv.setAttribute('data-sys-text', text);
             msgDiv.innerText = convertFont(text);
-            
             container.appendChild(msgDiv);
-            container.scrollTop = container.scrollHeight;
+            setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
         }
 
         function copyLink() {

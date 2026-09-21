@@ -466,16 +466,21 @@
             />
           </div>
           <div
-            style="margin-bottom: 10px; font-size: 14px; color: #8e9297"
+            style="
+              margin-bottom: 10px;
+              font-size: 14px;
+              color: #8e9297;
+              text-align: center;
+            "
             id="dictCount"
           ></div>
 
           <div
             class="output-box"
-            style="padding: 0; max-height: 60vh; overflow-y: auto"
+            style="padding: 0; max-height: 55vh; overflow-y: auto"
           >
             <table
-              style="width: 100%; border-collapse: collapse; text-align: left"
+              style="width: 100%; border-collapse: collapse; text-align: center"
             >
               <thead
                 style="
@@ -487,13 +492,23 @@
               >
                 <tr>
                   <th
-                    style="padding: 12px; border-bottom: 1px solid #40444b"
+                    style="
+                      padding: 12px;
+                      border-bottom: 1px solid #40444b;
+                      text-align: center;
+                      width: 50%;
+                    "
                     data-translate
                   >
                     中國用語
                   </th>
                   <th
-                    style="padding: 12px; border-bottom: 1px solid #40444b"
+                    style="
+                      padding: 12px;
+                      border-bottom: 1px solid #40444b;
+                      text-align: center;
+                      width: 50%;
+                    "
                     data-translate
                   >
                     台灣用語
@@ -504,6 +519,43 @@
                 <!-- 字典內容會由 JS 渲染在這裡 -->
               </tbody>
             </table>
+          </div>
+
+          <!-- 分頁控制按鈕 -->
+          <div
+            id="paginationControls"
+            style="
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 15px;
+              margin-top: 15px;
+            "
+          >
+            <button
+              class="action-btn"
+              onclick="prevPage()"
+              id="btnPrevPage"
+              style="padding: 6px 16px; font-size: 14px"
+              data-translate
+            >
+              上一頁
+            </button>
+            <span
+              id="pageInfo"
+              style="font-size: 14px; color: #dcddde; font-weight: bold"
+            >
+              第 1 / 1 頁
+            </span>
+            <button
+              class="action-btn"
+              onclick="nextPage()"
+              id="btnNextPage"
+              style="padding: 6px 16px; font-size: 14px"
+              data-translate
+            >
+              下一頁
+            </button>
           </div>
         </div>
 
@@ -543,8 +595,17 @@
               placeholder="請輸入需要翻譯的文章..."
             ></textarea>
             <div class="hint" data-translate>
-              💡 提示：按下 Enter 送出翻譯，按下 Shift + Enter 換行
+              💡 提示：電腦端 Enter 送出、Shift+Enter 換行；手機端直接 Enter
+              換行並點擊按鈕送出
             </div>
+            <button
+              class="action-btn"
+              style="width: 100%; margin-top: 10px; font-weight: bold"
+              onclick="executeArticleTranslation()"
+              data-translate
+            >
+              送出翻譯
+            </button>
           </div>
         </div>
 
@@ -835,9 +896,15 @@
       }
 
       const transInput = document.getElementById("trans-input");
-      transInput.addEventListener("keydown", (e) =>
-        handleKeydown(e, executeArticleTranslation),
-      );
+      transInput.addEventListener("keydown", (e) => {
+        // 判斷是否為手機螢幕或行動裝置
+        const isMobile =
+          window.innerWidth <= 768 ||
+          /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+        if (isMobile) return; // 手機端直接跳過，保留預設 Enter 換行功能
+
+        handleKeydown(e, executeArticleTranslation);
+      });
 
       function addReportRow() {
         const container = document.getElementById("report-container");
@@ -1053,38 +1120,93 @@
           .then(() => alert(convertFont("已複製邀請連結！")));
       }
 
-      // ====== 新增：字典渲染與搜尋功能 ======
+      // ====== 字典渲染、翻頁與搜尋功能 ======
+      let currentPage = 1;
+      const pageSize = 15; // 每頁顯示 15 筆
+
       function renderDictTable(searchTerm = "") {
         const tbody = document.getElementById("dictTableBody");
         const countDiv = document.getElementById("dictCount");
+        const pageInfo = document.getElementById("pageInfo");
+        const btnPrev = document.getElementById("btnPrevPage");
+        const btnNext = document.getElementById("btnNextPage");
+
         if (!tbody || !countDiv) return;
 
+        // 1. 過濾資料
+        const filteredEntries = Object.entries(dictionary).filter(
+          ([cn, tw]) => {
+            if (!searchTerm) return true;
+            return cn.includes(searchTerm) || tw.includes(searchTerm);
+          },
+        );
+
+        const totalItems = filteredEntries.length;
+        const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+        // 邊界檢查
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        // 2. 切片當前頁面的資料
+        const startIndex = (currentPage - 1) * pageSize;
+        const pageEntries = filteredEntries.slice(
+          startIndex,
+          startIndex + pageSize,
+        );
+
+        // 3. 渲染表格（設定文字置中）
         tbody.innerHTML = "";
-        let count = 0;
-
-        for (const [cn, tw] of Object.entries(dictionary)) {
-          // 如果有輸入搜尋字詞，且中台用語都不包含該字詞，則跳過
-          if (
-            searchTerm &&
-            !cn.includes(searchTerm) &&
-            !tw.includes(searchTerm)
-          )
-            continue;
-
-          count++;
+        pageEntries.forEach(([cn, tw]) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b;">${cn}</td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b;">${tw}</td>
-        `;
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${cn}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${tw}</td>
+          `;
           tbody.appendChild(tr);
-        }
-        countDiv.innerText = `目前共收錄 ${Object.keys(dictionary).length} 筆詞彙 (顯示 ${count} 筆)`;
+        });
+
+        // 4. 更新狀態與按鈕
+        countDiv.innerText = convertFont(
+          `目前共收錄 ${Object.keys(dictionary).length} 筆詞彙 (符合搜尋 ${totalItems} 筆)`,
+        );
+        if (pageInfo)
+          pageInfo.innerText = convertFont(
+            `第 ${currentPage} / ${totalPages} 頁`,
+          );
+
+        if (btnPrev) btnPrev.disabled = currentPage <= 1;
+        if (btnNext) btnNext.disabled = currentPage >= totalPages;
       }
 
       function filterDict() {
+        currentPage = 1; // 搜尋時重置回第一頁
         const term = document.getElementById("dictSearch").value.trim();
         renderDictTable(term);
+      }
+
+      function prevPage() {
+        if (currentPage > 1) {
+          currentPage--;
+          const term = document.getElementById("dictSearch").value.trim();
+          renderDictTable(term);
+        }
+      }
+
+      function nextPage() {
+        const term = document.getElementById("dictSearch").value.trim();
+        const filteredEntries = Object.entries(dictionary).filter(
+          ([cn, tw]) => {
+            if (!term) return true;
+            return cn.includes(term) || tw.includes(term);
+          },
+        );
+        const totalPages = Math.ceil(filteredEntries.length / pageSize) || 1;
+
+        if (currentPage < totalPages) {
+          currentPage++;
+          renderDictTable(term);
+        }
       }
 
       window.onload = function () {

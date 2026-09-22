@@ -743,9 +743,8 @@
       }
 
       let currentLang = "zh-TW";
-      // （使用 s 代表純簡體，tw 代表純台灣繁體字元，不含詞彙翻譯）：
-      const tw2cn = OpenCC.Converter({ from: "tw", to: "s" });
-      const cn2tw = OpenCC.Converter({ from: "s", to: "tw" });
+      const tw2cn = OpenCC.Converter({ from: "tw", to: "cn" });
+      const cn2tw = OpenCC.Converter({ from: "cn", to: "tw" });
 
       function convertFont(text) {
         if (!text) return text;

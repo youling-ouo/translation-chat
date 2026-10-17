@@ -182,7 +182,6 @@
         margin-top: 5px;
       }
 
-      /* 聊天輸入框即時預覽樣式 */
       .chat-preview-box {
         display: none;
         font-size: 13px;
@@ -228,12 +227,16 @@
         line-height: 1.4;
         margin-bottom: 10px;
         word-wrap: break-word;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.2s;
       }
       .msg-sys {
         text-align: center;
         color: #8e9297;
         font-size: 13px;
         margin: 0 auto 10px auto;
+        cursor: default;
       }
       .msg-self {
         background-color: var(--primary);
@@ -416,6 +419,9 @@
       <button class="tab-btn" onclick="switchTab('dictView')" data-translate>
         📚 詞彙字典庫
       </button>
+      <button class="tab-btn" onclick="switchTab('protectView')" data-translate>
+        🛡️ 例外保護詞庫
+      </button>
       <button class="tab-btn" onclick="switchTab('translator')" data-translate>
         📝 文章翻譯器
       </button>
@@ -450,14 +456,14 @@
               </li>
               <li data-translate>
                 <strong>匿名聊天室：</strong
-                >點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（游標移至文字上可查看原文）。
+                >點擊「建立專屬聊天室」產生專屬連結。分享給朋友後，雙方對話會自動轉換字體與用語（滑鼠懸停或點擊訊息卡片即可即時查看原文）。
               </li>
               <li data-translate>
                 <strong>詞彙回報：</strong
-                >遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！
+                >遇到沒翻譯到的詞彙或需要保護不被誤砍的例外用語？透過表單大量回報，將自動發送給管理員審核並加入字典！
               </li>
               <li data-translate>
-                <strong>意見回饋：</strong>有任何新點態或發現
+                <strong>意見回饋：</strong>有任何新點子或發現
                 Bug，都可以透過回饋信箱告訴我們！
               </li>
             </ul>
@@ -577,6 +583,100 @@
           </div>
         </div>
 
+        <!-- ✨ 新增：例外保護詞庫專用分頁 -->
+        <div id="section-protectView" class="section">
+          <h2 data-translate>🛡️ 例外保護詞庫 (防誤砍清單)</h2>
+          <div style="margin-bottom: 15px">
+            <input
+              type="text"
+              id="protectSearch"
+              placeholder="搜尋例外保護詞彙..."
+              onkeyup="filterProtectDict()"
+              data-translate
+            />
+          </div>
+          <div
+            style="
+              margin-bottom: 10px;
+              font-size: 14px;
+              color: #8e9297;
+              text-align: center;
+            "
+            id="protectCount"
+          ></div>
+
+          <div
+            class="output-box"
+            style="padding: 0; max-height: 55vh; overflow-y: auto"
+          >
+            <table
+              style="width: 100%; border-collapse: collapse; text-align: center"
+            >
+              <thead
+                style="
+                  background-color: #202225;
+                  position: sticky;
+                  top: 0;
+                  z-index: 10;
+                "
+              >
+                <tr>
+                  <th
+                    style="
+                      padding: 12px;
+                      border-bottom: 1px solid #40444b;
+                      text-align: center;
+                      width: 100%;
+                    "
+                    data-translate
+                  >
+                    保護詞彙 (不進行字串替換)
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="protectTableBody">
+                <!-- 保護詞條由 JS 動態繪製 -->
+              </tbody>
+            </table>
+          </div>
+
+          <div
+            id="protectPaginationControls"
+            style="
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 15px;
+              margin-top: 15px;
+            "
+          >
+            <button
+              class="action-btn"
+              onclick="prevProtectPage()"
+              id="btnPrevProtectPage"
+              style="padding: 6px 16px; font-size: 14px"
+              data-translate
+            >
+              上一頁
+            </button>
+            <span
+              id="protectPageInfo"
+              style="font-size: 14px; color: #dcddde; font-weight: bold"
+            >
+              第 1 / 1 頁
+            </span>
+            <button
+              class="action-btn"
+              onclick="nextProtectPage()"
+              id="btnNextProtectPage"
+              style="padding: 6px 16px; font-size: 14px"
+              data-translate
+            >
+              下一頁
+            </button>
+          </div>
+        </div>
+
         <div id="section-translator" class="section">
           <h2 data-translate>📝 文章段落翻譯器</h2>
 
@@ -666,10 +766,10 @@
               data-translate
               placeholder="輸入訊息，系統將自動轉換與翻譯..."
             ></textarea>
-            <!-- ✨ 新增：聊天即時預覽顯示區 -->
             <div class="chat-preview-box" id="chatPreview"></div>
             <div class="hint" data-translate>
-              💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行
+              💡 提示：按下 Enter 送出訊息，按下 Shift + Enter
+              換行（手機與電腦點擊訊息即可切換顯示原文）
             </div>
             <button
               class="action-btn"
@@ -688,19 +788,22 @@
           <select id="reportType">
             <option value="missing" data-translate>沒有的用語</option>
             <option value="wrong" data-translate>錯誤的用語</option>
+            <option value="protect" data-translate>
+              保護/例外用語 (不翻譯/防誤砍)
+            </option>
           </select>
           <div id="report-container">
             <div class="report-row">
               <input
                 type="text"
                 data-translate
-                placeholder="中國用語 (例: 視頻)"
+                placeholder="中國用語 (例: 視頻 / 從小學習)"
                 class="word-a"
               />
               <input
                 type="text"
                 data-translate
-                placeholder="台灣用語 (例: 影片)"
+                placeholder="台灣用語 (例: 影片 / 從小學習)"
                 class="word-b"
               />
             </div>
@@ -838,6 +941,11 @@
             ? document.getElementById("dictSearch").value.trim()
             : "";
           renderDictTable(searchVal);
+
+          const protectSearchVal = document.getElementById("protectSearch")
+            ? document.getElementById("protectSearch").value.trim()
+            : "";
+          renderProtectTable(protectSearchVal);
         }
 
         document.querySelectorAll(".message").forEach((msgDiv) => {
@@ -888,6 +996,7 @@
         .then((data) => {
           dictionary = data;
           renderDictTable();
+          renderProtectTable();
         })
         .catch((err) => console.error("無法載入字典檔", err));
 
@@ -896,7 +1005,6 @@
         return translateDirectional(text, currentLang === "zh-TW");
       }
 
-      // 🧠 優化版智慧斷詞與用語轉換引擎
       function translateDirectional(text, toTaiwan) {
         if (!text || Object.keys(dictionary).length === 0) return text;
 
@@ -909,60 +1017,53 @@
           }
         });
 
-        // 1. 原生 Intl.Segmenter 智慧斷詞流程
-        if (typeof Intl !== "undefined" && Intl.Segmenter) {
-          const segmenter = new Intl.Segmenter("zh", { granularity: "word" });
-          const segments = segmenter.segment(text);
+        if (toTaiwan) {
+          const keys = Object.keys(expandedDict)
+            .filter((k) => k && k.trim() !== "")
+            .sort((a, b) => b.length - a.length);
 
-          let translatedText = "";
-          for (const { segment, isWordLike } of segments) {
-            // ⚡ 效能優化：如果不是文字（如純標點符號、空白、數字），直接原樣拼接
-            if (!isWordLike) {
-              translatedText += convertFont(segment);
-              continue;
-            }
+          if (keys.length === 0) return text;
 
-            if (toTaiwan) {
-              if (expandedDict[segment]) {
-                translatedText += expandedDict[segment];
-              } else {
-                const converted = convertFont(segment);
-                translatedText += expandedDict[converted] || converted;
-              }
-            } else {
-              const reverseDict = {};
-              Object.keys(dictionary).forEach((k) => {
-                if (dictionary[k]) {
-                  reverseDict[dictionary[k]] = k;
-                  reverseDict[cn2tw(dictionary[k])] = k;
-                }
-              });
-              const converted = convertFont(segment);
-              translatedText +=
-                reverseDict[segment] || reverseDict[converted] || converted;
-            }
-          }
-          return translatedText;
-        }
-
-        // 2. 備用降級正則機制（針對舊版瀏覽器）
-        const keys = Object.keys(expandedDict)
-          .filter((k) => k && k.trim() !== "")
-          .sort((a, b) => b.length - a.length);
-
-        if (keys.length === 0) return text;
-        const escapedKeys = keys.map((k) =>
-          k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-        );
-        const regex = new RegExp(escapedKeys.join("|"), "g");
-
-        return text.replace(regex, (matched) => {
-          return (
-            expandedDict[matched] ||
-            expandedDict[convertFont(matched)] ||
-            matched
+          const escapedKeys = keys.map((k) =>
+            k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
           );
-        });
+          const regex = new RegExp(escapedKeys.join("|"), "g");
+
+          return text.replace(regex, (matched) => {
+            return (
+              expandedDict[matched] ||
+              expandedDict[convertFont(matched)] ||
+              matched
+            );
+          });
+        } else {
+          const reverseDict = {};
+          Object.keys(dictionary).forEach((key) => {
+            if (dictionary[key]) {
+              reverseDict[dictionary[key]] = key;
+              reverseDict[cn2tw(dictionary[key])] = key;
+            }
+          });
+
+          const values = Object.keys(reverseDict)
+            .filter((v) => v && v.trim() !== "")
+            .sort((a, b) => b.length - a.length);
+
+          if (values.length === 0) return text;
+
+          const escapedValues = values.map((v) =>
+            v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+          );
+          const regex = new RegExp(escapedValues.join("|"), "g");
+
+          return text.replace(regex, (matched) => {
+            return (
+              reverseDict[matched] ||
+              reverseDict[convertFont(matched)] ||
+              matched
+            );
+          });
+        }
       }
 
       function executeArticleTranslation() {
@@ -985,7 +1086,6 @@
         handleKeydown(e, executeArticleTranslation);
       });
 
-      // ✨ 新增：聊天室輸入框「即時預覽轉換」邏輯
       function handleChatInputPreview() {
         const input = document.getElementById("chatInput");
         const preview = document.getElementById("chatPreview");
@@ -999,7 +1099,6 @@
         }
 
         const translated = translateText(val);
-        // 如果經過轉換後文字有發生變更，顯示預覽提示
         if (translated !== val) {
           preview.style.display = "block";
           preview.innerText = convertFont(`✨ 預覽轉換：${translated}`);
@@ -1013,8 +1112,8 @@
         const row = document.createElement("div");
         row.className = "report-row";
         row.innerHTML = `
-                <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
-                <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
+                <input type="text" data-translate placeholder="中國用語 (例: 視頻 / 從小學習)" class="word-a">
+                <input type="text" data-translate placeholder="台灣用語 (例: 影片 / 從小學習)" class="word-b">
                 <button class="btn-delete" onclick="removeReportRow(this)">✖</button>
             `;
         container.appendChild(row);
@@ -1031,10 +1130,42 @@
         let successCount = 0;
         let totalToSubmit = 0;
 
+        const sanitizeTerm = (str) => {
+          return str
+            .trim()
+            .replace(/[\.。@#\$%\^&\*\(\)\+\=\[\]\{\};:'",<>/?\\|`~!0-9]/g, "");
+        };
+
         for (let row of rows) {
-          const cnTerm = row.querySelector(".word-a").value.trim();
-          const twTerm = row.querySelector(".word-b").value.trim();
+          let cnTerm = row.querySelector(".word-a").value.trim();
+          let twTerm = row.querySelector(".word-b").value.trim();
+
+          cnTerm = sanitizeTerm(cnTerm);
+          twTerm = sanitizeTerm(twTerm);
+
+          // 如果是保護類型，確保兩邊填寫一致
+          if (type === "protect" && cnTerm && !twTerm) {
+            twTerm = cnTerm;
+          } else if (type === "protect" && !cnTerm && twTerm) {
+            cnTerm = twTerm;
+          }
+
           if (cnTerm && twTerm) {
+            const exists = Object.keys(dictionary).some((k) => {
+              const isKeyMatch = k === cnTerm || tw2cn(k) === tw2cn(cnTerm);
+              const isValueMatch = dictionary[k] === twTerm;
+              return isKeyMatch && isValueMatch;
+            });
+
+            if (exists) {
+              alert(
+                convertFont(
+                  `詞彙「${cnTerm} ➔ ${twTerm}」在字典中已經存在，無需重複回報！`,
+                ),
+              );
+              continue;
+            }
+
             totalToSubmit++;
             try {
               const res = await fetch("/api/report", {
@@ -1049,21 +1180,22 @@
             }
           }
         }
-        if (totalToSubmit === 0) {
-          alert(convertFont("請至少完整填寫一組用語！"));
+
+        if (totalToSubmit === 0 && rows.length > 0) {
           return;
         }
+
         if (successCount > 0) {
           alert(
             convertFont(`成功發送 ${successCount} 組用語回報至機器人審核！`),
           );
           document.getElementById("report-container").innerHTML = `
                     <div class="report-row">
-                        <input type="text" data-translate placeholder="中國用語 (例: 視頻)" class="word-a">
-                        <input type="text" data-translate placeholder="台灣用語 (例: 影片)" class="word-b">
+                        <input type="text" data-translate placeholder="中國用語 (例: 視頻 / 從小學習)" class="word-a">
+                        <input type="text" data-translate placeholder="台灣用語 (例: 影片 / 從小學習)" class="word-b">
                     </div>`;
           applyLanguage();
-        } else {
+        } else if (totalToSubmit > 0) {
           alert(convertFont("回報失敗，請檢查連線狀態。"));
         }
       }
@@ -1155,7 +1287,7 @@
             id: myId,
           });
           input.value = "";
-          handleChatInputPreview(); // 清空輸入框後關閉預覽
+          handleChatInputPreview();
         } else if (!currentRoom) {
           alert(convertFont("請先建立或加入一個聊天室！"));
         }
@@ -1172,6 +1304,13 @@
         msgDiv.className = `message ${isSelf ? "msg-self" : "msg-other"}`;
         msgDiv.setAttribute("data-sender-id", id);
         msgDiv.setAttribute("data-orig-text", originalText);
+        msgDiv.setAttribute("data-show-orig", "false");
+
+        msgDiv.onclick = () => {
+          const isShowOrig = msgDiv.getAttribute("data-show-orig") === "true";
+          msgDiv.setAttribute("data-show-orig", isShowOrig ? "false" : "true");
+          renderSingleMessage(msgDiv);
+        };
 
         renderSingleMessage(msgDiv);
         container.appendChild(msgDiv);
@@ -1183,23 +1322,19 @@
       function renderSingleMessage(msgDiv) {
         const id = msgDiv.getAttribute("data-sender-id");
         const originalText = msgDiv.getAttribute("data-orig-text");
-        const displayText = translateText(originalText);
+        const translatedText = translateText(originalText);
+        const isShowOrig = msgDiv.getAttribute("data-show-orig") === "true";
 
-        if (originalText !== displayText) {
-          const titleText = `原文：${originalText}`;
-          msgDiv.setAttribute("data-original-title", titleText);
-          msgDiv.title = convertFont(titleText);
-          msgDiv.style.cursor = "help";
-        } else {
-          msgDiv.removeAttribute("title");
-          msgDiv.removeAttribute("data-original-title");
-          msgDiv.style.cursor = "default";
-        }
+        const titleText = `原文：${originalText}`;
+        msgDiv.setAttribute("data-original-title", titleText);
+        msgDiv.title = convertFont(titleText);
 
+        const currentDisplay = isShowOrig ? originalText : translatedText;
         const headerColor = msgDiv.classList.contains("msg-self")
           ? "#c7d0f8"
           : "#8e9297";
-        msgDiv.innerHTML = `<div style="font-size: 12px; color: ${headerColor}; margin-bottom: 4px;">${id}</div>${convertFont(displayText).replace(/\n/g, "<br>")}`;
+
+        msgDiv.innerHTML = `<div style="font-size: 12px; color: ${headerColor}; margin-bottom: 4px;">${id} ${isShowOrig ? "(原文)" : ""}</div>${convertFont(currentDisplay).replace(/\n/g, "<br>")}`;
       }
 
       function addSysMessage(text) {
@@ -1221,6 +1356,7 @@
           .then(() => alert(convertFont("已複製邀請連結！")));
       }
 
+      // ====== 字典與分頁管理 ======
       let currentPage = 1;
       const pageSize = 15;
 
@@ -1302,6 +1438,99 @@
         if (currentPage < totalPages) {
           currentPage++;
           renderDictTable(term);
+        }
+      }
+
+      // ====== 例外保護詞庫與分頁管理 ======
+      let currentProtectPage = 1;
+      const protectPageSize = 15;
+
+      function renderProtectTable(searchTerm = "") {
+        const tbody = document.getElementById("protectTableBody");
+        const countDiv = document.getElementById("protectCount");
+        const pageInfo = document.getElementById("protectPageInfo");
+        const btnPrev = document.getElementById("btnPrevProtectPage");
+        const btnNext = document.getElementById("btnNextProtectPage");
+
+        if (!tbody || !countDiv) return;
+
+        // 過濾出保護詞條 (即 cn === tw 的項目)
+        const protectEntries = Object.entries(dictionary).filter(
+          ([cn, tw]) => cn === tw,
+        );
+
+        const filteredEntries = protectEntries.filter(([cn]) => {
+          if (!searchTerm) return true;
+          return cn.includes(searchTerm);
+        });
+
+        const totalItems = filteredEntries.length;
+        const totalPages = Math.ceil(totalItems / protectPageSize) || 1;
+
+        if (currentProtectPage > totalPages) currentProtectPage = totalPages;
+        if (currentProtectPage < 1) currentProtectPage = 1;
+
+        const startIndex = (currentProtectPage - 1) * protectPageSize;
+        const pageEntries = filteredEntries.slice(
+          startIndex,
+          startIndex + protectPageSize,
+        );
+
+        tbody.innerHTML = "";
+        if (pageEntries.length === 0) {
+          tbody.innerHTML = `<tr><td style="padding: 20px; color: #8e9297; text-align: center;">目前尚無例外保護詞條</td></tr>`;
+        } else {
+          pageEntries.forEach(([cn]) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td style="padding: 10px 12px; border-bottom: 1px solid #40444b; text-align: center;">${convertFont(cn)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        countDiv.innerText = convertFont(
+          `目前共收錄 ${protectEntries.length} 筆例外保護詞條 (符合搜尋 ${totalItems} 筆)`,
+        );
+        if (pageInfo) {
+          pageInfo.innerText = convertFont(
+            `第 ${currentProtectPage} / ${totalPages} 頁`,
+          );
+        }
+
+        if (btnPrev) btnPrev.disabled = currentProtectPage <= 1;
+        if (btnNext) btnNext.disabled = currentProtectPage >= totalPages;
+      }
+
+      function filterProtectDict() {
+        currentProtectPage = 1;
+        const term = document.getElementById("protectSearch").value.trim();
+        renderProtectTable(term);
+      }
+
+      function prevProtectPage() {
+        if (currentProtectPage > 1) {
+          currentProtectPage--;
+          const term = document.getElementById("protectSearch").value.trim();
+          renderProtectTable(term);
+        }
+      }
+
+      function nextProtectPage() {
+        const term = document.getElementById("protectSearch").value.trim();
+        const protectEntries = Object.entries(dictionary).filter(
+          ([cn, tw]) => cn === tw,
+        );
+        const filteredEntries = protectEntries.filter(([cn]) => {
+          if (!term) return true;
+          return cn.includes(term);
+        });
+        const totalPages =
+          Math.ceil(filteredEntries.length / protectPageSize) || 1;
+
+        if (currentProtectPage < totalPages) {
+          currentProtectPage++;
+          renderProtectTable(term);
         }
       }
 

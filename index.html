@@ -182,6 +182,19 @@
         margin-top: 5px;
       }
 
+      /* 聊天輸入框即時預覽樣式 */
+      .chat-preview-box {
+        display: none;
+        font-size: 13px;
+        color: #5865f2;
+        background-color: #202225;
+        padding: 8px 12px;
+        border-radius: var(--border-radius);
+        margin-top: 6px;
+        border-left: 3px solid #5865f2;
+        word-break: break-all;
+      }
+
       .split-container {
         display: flex;
         gap: 20px;
@@ -254,7 +267,6 @@
         margin-bottom: 20px;
       }
 
-      /* 修正：為 action-btn 強制加上 Flexbox 置中機制，確保文字絕不偏下 */
       .action-btn {
         background-color: var(--primary);
         color: white;
@@ -445,7 +457,7 @@
                 >遇到沒翻譯到的詞彙？透過表單大量回報，你的建議將自動發送給管理員審核並加入字典！
               </li>
               <li data-translate>
-                <strong>意見回饋：</strong>有任何新點子或發現
+                <strong>意見回饋：</strong>有任何新點態或發現
                 Bug，都可以透過回饋信箱告訴我們！
               </li>
             </ul>
@@ -650,9 +662,12 @@
             <textarea
               id="chatInput"
               rows="3"
+              oninput="handleChatInputPreview()"
               data-translate
               placeholder="輸入訊息，系統將自動轉換與翻譯..."
             ></textarea>
+            <!-- ✨ 新增：聊天即時預覽顯示區 -->
+            <div class="chat-preview-box" id="chatPreview"></div>
             <div class="hint" data-translate>
               💡 提示：按下 Enter 送出訊息，按下 Shift + Enter 換行
             </div>
@@ -760,7 +775,6 @@
         initLanguage();
       });
 
-      // 快取原始的繁體中文，避免多次切換後丢失原文
       function cacheOriginalText() {
         document.querySelectorAll("[data-translate]").forEach((el) => {
           if (
@@ -803,7 +817,6 @@
             currentLang === "zh-TW" ? "切換為簡體中文" : "切换为繁体中文";
         });
 
-        // 轉換所有靜態 DOM
         document.querySelectorAll("[data-translate]").forEach((el) => {
           if (
             (el.tagName === "INPUT" || el.tagName === "TEXTAREA") &&
@@ -820,7 +833,6 @@
           }
         });
 
-        // 關鍵：語系切換時重新繪製字典表格與統計文字
         if (Object.keys(dictionary).length > 0) {
           const searchVal = document.getElementById("dictSearch")
             ? document.getElementById("dictSearch").value.trim()
@@ -828,7 +840,6 @@
           renderDictTable(searchVal);
         }
 
-        // 轉換聊天室歷史訊息
         document.querySelectorAll(".message").forEach((msgDiv) => {
           if (msgDiv.hasAttribute("data-orig-text"))
             renderSingleMessage(msgDiv);
@@ -844,6 +855,8 @@
         ) {
           executeArticleTranslation();
         }
+
+        handleChatInputPreview();
       }
 
       function switchTab(tabId) {
@@ -883,68 +896,73 @@
         return translateDirectional(text, currentLang === "zh-TW");
       }
 
+      // 🧠 優化版智慧斷詞與用語轉換引擎
       function translateDirectional(text, toTaiwan) {
         if (!text || Object.keys(dictionary).length === 0) return text;
 
-        if (toTaiwan) {
-          // 1. 同時建立「繁體 Key」與「簡體 Key」的對應表，確保不管輸入簡中或繁中都能抓到
-          const expandedDict = {};
-          Object.keys(dictionary).forEach((cnKey) => {
-            const twVal = dictionary[cnKey];
-            if (cnKey && twVal) {
-              expandedDict[cnKey] = twVal; // 原本的繁體 Key
-              expandedDict[tw2cn(cnKey)] = twVal; // 自動補上簡體 Key
+        const expandedDict = {};
+        Object.keys(dictionary).forEach((cnKey) => {
+          const twVal = dictionary[cnKey];
+          if (cnKey && twVal) {
+            expandedDict[cnKey] = twVal;
+            expandedDict[tw2cn(cnKey)] = twVal;
+          }
+        });
+
+        // 1. 原生 Intl.Segmenter 智慧斷詞流程
+        if (typeof Intl !== "undefined" && Intl.Segmenter) {
+          const segmenter = new Intl.Segmenter("zh", { granularity: "word" });
+          const segments = segmenter.segment(text);
+
+          let translatedText = "";
+          for (const { segment, isWordLike } of segments) {
+            // ⚡ 效能優化：如果不是文字（如純標點符號、空白、數字），直接原樣拼接
+            if (!isWordLike) {
+              translatedText += convertFont(segment);
+              continue;
             }
-          });
 
-          const keys = Object.keys(expandedDict)
-            .filter((k) => k && k.trim() !== "")
-            .sort((a, b) => b.length - a.length);
-
-          if (keys.length === 0) return text;
-
-          const escapedKeys = keys.map((k) =>
-            k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-          );
-          const regex = new RegExp(escapedKeys.join("|"), "g");
-
-          return text.replace(regex, (matched) => {
-            return (
-              expandedDict[matched] ||
-              expandedDict[convertFont(matched)] ||
-              matched
-            );
-          });
-        } else {
-          // 反向翻譯：將「台灣用語」替換為「中國用語」
-          const reverseDict = {};
-          Object.keys(dictionary).forEach((key) => {
-            if (dictionary[key]) {
-              reverseDict[dictionary[key]] = key;
-              // 同時支援繁簡對應
-              reverseDict[cn2tw(dictionary[key])] = key;
+            if (toTaiwan) {
+              if (expandedDict[segment]) {
+                translatedText += expandedDict[segment];
+              } else {
+                const converted = convertFont(segment);
+                translatedText += expandedDict[converted] || converted;
+              }
+            } else {
+              const reverseDict = {};
+              Object.keys(dictionary).forEach((k) => {
+                if (dictionary[k]) {
+                  reverseDict[dictionary[k]] = k;
+                  reverseDict[cn2tw(dictionary[k])] = k;
+                }
+              });
+              const converted = convertFont(segment);
+              translatedText +=
+                reverseDict[segment] || reverseDict[converted] || converted;
             }
-          });
-
-          const values = Object.keys(reverseDict)
-            .filter((v) => v && v.trim() !== "")
-            .sort((a, b) => b.length - a.length);
-
-          if (values.length === 0) return text;
-
-          const escapedValues = values.map((v) =>
-            v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
-          );
-          const regex = new RegExp(escapedValues.join("|"), "g");
-
-          return text.replace(regex, (matched) => {
-            return (
-              reverseDict[matched] ||
-              reverseDict[convertFont(matched)] ||
-              matched
-            );
-          });
+          }
+          return translatedText;
         }
+
+        // 2. 備用降級正則機制（針對舊版瀏覽器）
+        const keys = Object.keys(expandedDict)
+          .filter((k) => k && k.trim() !== "")
+          .sort((a, b) => b.length - a.length);
+
+        if (keys.length === 0) return text;
+        const escapedKeys = keys.map((k) =>
+          k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        );
+        const regex = new RegExp(escapedKeys.join("|"), "g");
+
+        return text.replace(regex, (matched) => {
+          return (
+            expandedDict[matched] ||
+            expandedDict[convertFont(matched)] ||
+            matched
+          );
+        });
       }
 
       function executeArticleTranslation() {
@@ -966,6 +984,29 @@
         if (isMobile) return;
         handleKeydown(e, executeArticleTranslation);
       });
+
+      // ✨ 新增：聊天室輸入框「即時預覽轉換」邏輯
+      function handleChatInputPreview() {
+        const input = document.getElementById("chatInput");
+        const preview = document.getElementById("chatPreview");
+        if (!input || !preview) return;
+
+        const val = input.value.trim();
+        if (!val) {
+          preview.style.display = "none";
+          preview.innerText = "";
+          return;
+        }
+
+        const translated = translateText(val);
+        // 如果經過轉換後文字有發生變更，顯示預覽提示
+        if (translated !== val) {
+          preview.style.display = "block";
+          preview.innerText = convertFont(`✨ 預覽轉換：${translated}`);
+        } else {
+          preview.style.display = "none";
+        }
+      }
 
       function addReportRow() {
         const container = document.getElementById("report-container");
@@ -1114,6 +1155,7 @@
             id: myId,
           });
           input.value = "";
+          handleChatInputPreview(); // 清空輸入框後關閉預覽
         } else if (!currentRoom) {
           alert(convertFont("請先建立或加入一個聊天室！"));
         }
@@ -1179,7 +1221,6 @@
           .then(() => alert(convertFont("已複製邀請連結！")));
       }
 
-      // ====== 字典渲染、翻頁與語系轉換 ======
       let currentPage = 1;
       const pageSize = 15;
 
@@ -1192,7 +1233,6 @@
 
         if (!tbody || !countDiv) return;
 
-        // 1. 過濾資料
         const filteredEntries = Object.entries(dictionary).filter(
           ([cn, tw]) => {
             if (!searchTerm) return true;
@@ -1212,7 +1252,6 @@
           startIndex + pageSize,
         );
 
-        // 2. 渲染表格（重點：加入 convertFont 轉換單詞語系）
         tbody.innerHTML = "";
         pageEntries.forEach(([cn, tw]) => {
           const tr = document.createElement("tr");
@@ -1223,7 +1262,6 @@
           tbody.appendChild(tr);
         });
 
-        // 3. 更新統計訊息與分頁標示（加入 convertFont）
         countDiv.innerText = convertFont(
           `目前共收錄 ${Object.keys(dictionary).length} 筆詞彙 (符合搜尋 ${totalItems} 筆)`,
         );

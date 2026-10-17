@@ -1130,6 +1130,7 @@
         let successCount = 0;
         let totalToSubmit = 0;
 
+        // 1. 清理特殊符號與垃圾洗頻字元
         const sanitizeTerm = (str) => {
           return str
             .trim()
@@ -1137,11 +1138,16 @@
         };
 
         for (let row of rows) {
-          let cnTerm = row.querySelector(".word-a").value.trim();
-          let twTerm = row.querySelector(".word-b").value.trim();
+          let rawCnTerm = row.querySelector(".word-a").value.trim();
+          let rawTwTerm = row.querySelector(".word-b").value.trim();
 
-          cnTerm = sanitizeTerm(cnTerm);
-          twTerm = sanitizeTerm(twTerm);
+          // 2. 先清除特殊符號
+          let cnTerm = sanitizeTerm(rawCnTerm);
+          let twTerm = sanitizeTerm(rawTwTerm);
+
+          // 3. 核心優化：統一將輸入的文字轉為繁體中文（無論使用者輸入簡中或繁中）
+          cnTerm = cn2tw(cnTerm);
+          twTerm = cn2tw(twTerm);
 
           // 如果是保護類型，確保兩邊填寫一致
           if (type === "protect" && cnTerm && !twTerm) {
@@ -1151,6 +1157,7 @@
           }
 
           if (cnTerm && twTerm) {
+            // 4. 檢查字典中是否已經存在（此時因為都轉成繁中，比對會更精準）
             const exists = Object.keys(dictionary).some((k) => {
               const isKeyMatch = k === cnTerm || tw2cn(k) === tw2cn(cnTerm);
               const isValueMatch = dictionary[k] === twTerm;

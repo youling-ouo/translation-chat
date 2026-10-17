@@ -896,16 +896,14 @@
 
           // 2. 對 Key 進行特殊字元轉義，防止特殊符號破壞正規表達式
           const escapedKeys = keys.map((k) =>
-            k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
           );
           const regex = new RegExp(escapedKeys.join("|"), "g");
 
           // 3. 同時檢查繁簡體字（解決使用者輸入繁體「西紅柿」但字典存簡體「西红柿」的問題）
           return text.replace(regex, (matched) => {
             return (
-              dictionary[matched] ||
-              dictionary[convertFont(matched)] ||
-              matched
+              dictionary[matched] || dictionary[convertFont(matched)] || matched
             );
           });
         } else {
@@ -924,7 +922,7 @@
           if (values.length === 0) return text;
 
           const escapedValues = values.map((v) =>
-            v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+            v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
           );
           const regex = new RegExp(escapedValues.join("|"), "g");
 
@@ -935,28 +933,6 @@
               matched
             );
           });
-        }
-      }
-
-        if (!text || Object.keys(dictionary).length === 0) return text;
-        if (toTaiwan) {
-          const keys = Object.keys(dictionary).sort(
-            (a, b) => b.length - a.length,
-          );
-          if (keys.length === 0) return text;
-          const regex = new RegExp(keys.join("|"), "g");
-          return text.replace(regex, (matched) => dictionary[matched]);
-        } else {
-          const reverseDict = {};
-          Object.keys(dictionary).forEach((key) => {
-            if (dictionary[key]) reverseDict[dictionary[key]] = key;
-          });
-          const values = Object.keys(reverseDict).sort(
-            (a, b) => b.length - a.length,
-          );
-          if (values.length === 0) return text;
-          const regex = new RegExp(values.join("|"), "g");
-          return text.replace(regex, (matched) => reverseDict[matched]);
         }
       }
 

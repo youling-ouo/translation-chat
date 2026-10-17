@@ -887,23 +887,32 @@
         if (!text || Object.keys(dictionary).length === 0) return text;
 
         if (toTaiwan) {
-          // 1. 過濾掉空字串，並依照長度由長到短排序（避免短詞搶先匹配）
-          const keys = Object.keys(dictionary)
+          // 1. 同時建立「繁體 Key」與「簡體 Key」的對應表，確保不管輸入簡中或繁中都能抓到
+          const expandedDict = {};
+          Object.keys(dictionary).forEach((cnKey) => {
+            const twVal = dictionary[cnKey];
+            if (cnKey && twVal) {
+              expandedDict[cnKey] = twVal; // 原本的繁體 Key
+              expandedDict[tw2cn(cnKey)] = twVal; // 自動補上簡體 Key
+            }
+          });
+
+          const keys = Object.keys(expandedDict)
             .filter((k) => k && k.trim() !== "")
             .sort((a, b) => b.length - a.length);
 
           if (keys.length === 0) return text;
 
-          // 2. 對 Key 進行特殊字元轉義，防止特殊符號破壞正規表達式
           const escapedKeys = keys.map((k) =>
             k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
           );
           const regex = new RegExp(escapedKeys.join("|"), "g");
 
-          // 3. 同時檢查繁簡體字（解決使用者輸入繁體「西紅柿」但字典存簡體「西红柿」的問題）
           return text.replace(regex, (matched) => {
             return (
-              dictionary[matched] || dictionary[convertFont(matched)] || matched
+              expandedDict[matched] ||
+              expandedDict[convertFont(matched)] ||
+              matched
             );
           });
         } else {
@@ -912,6 +921,8 @@
           Object.keys(dictionary).forEach((key) => {
             if (dictionary[key]) {
               reverseDict[dictionary[key]] = key;
+              // 同時支援繁簡對應
+              reverseDict[cn2tw(dictionary[key])] = key;
             }
           });
 
